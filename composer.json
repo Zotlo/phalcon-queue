@@ -1,0 +1,26 @@
+{
+  "name": "zotlo/phalcon-queue",
+  "description": "Dashboard and code-driven configuration for Phalcon 5 queues.",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": "^8.1",
+    "ext-pdo": "*",
+    "ext-pcntl": "*",
+    "ext-phalcon": "5.*",
+    "symfony/process": "^5.0",
+    "symfony/console": "^5.0",
+    "opis/closure": "^3.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "Phalcon\\Queue\\": "./lib"
+    },
+    "files": [
+      "./lib/functions.php"
+    ]
+  },
+  "require-dev": {
+    "phalcon/ide-stubs": "^5.8"
+  }
+}
