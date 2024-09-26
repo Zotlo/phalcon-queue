@@ -10,6 +10,13 @@ use Phalcon\Queue\Exceptions\ConnectorException;
 final class Connector
 {
     /**
+     * Connector Key
+     *
+     * @var string $connectorName
+     */
+    public string $connectorName;
+
+    /**
      * Storage Connector
      *
      * @var ConnectorInterface $adapter
@@ -21,6 +28,8 @@ final class Connector
      */
     public function __construct(string $connector = 'database')
     {
+        $this->connectorName = $connector;
+
         switch ($connector) {
             case 'database':
                 $this->adapter = new Database();

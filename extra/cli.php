@@ -18,6 +18,21 @@ $di->setShared('config', function () {
             'password' => 'polat',
             'dbname'   => 'phalcon',
             'charset'  => 'utf8',
+        ],
+        'queues'   => [
+            'adapter'     => 'redis', // database, redis
+            'dbIndex'     => 1,       // only redis
+            'supervisors' => [
+                [
+                    'queue'           => 'default',
+                    'processes'       => 10,
+                    'tries'           => 0,
+                    'timeout'         => 180,
+                    'balanceMaxShift' => 2,
+                    'balanceCooldown' => 3,
+                    'debug'           => true
+                ]
+            ]
         ]
     ]);
 });

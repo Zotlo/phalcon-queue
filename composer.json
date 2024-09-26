@@ -6,6 +6,7 @@
   "require": {
     "php": "^8.1",
     "ext-pdo": "*",
+    "ext-redis": "*",
     "ext-pcntl": "*",
     "ext-phalcon": "5.*",
     "symfony/process": "^5.0",

@@ -54,7 +54,7 @@ The queue interface manage all related with the queue system and abstract the jo
 It require the queue system client:
 
 - SQL : Phalcon\Db\Adapter\Pdo
-- Redis : Phalcon\Session\Adapter\Redis
+- Redis : Predis\Client
 
 And was well the source *queue name*. The consumer will need additional queues to manage the process:
 

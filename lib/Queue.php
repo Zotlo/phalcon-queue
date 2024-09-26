@@ -209,8 +209,8 @@ final class Queue
 
         if ($this->debug) {
             try {
-                $this->logger->info('PROCESSING COUNT: ' . $this->processingCount);
                 $this->logger->info('PENDING COUNT: ' . $pendingJobCount);
+                $this->logger->info('PROCESSING COUNT: ' . $this->processingCount);
             } catch (\Throwable $exception) {
                 //
             }
@@ -258,7 +258,7 @@ final class Queue
 
         for ($i = 1; $i <= $this->balanceMaxShift; $i++) {
             if ($this->processingCount <= $this->processMax) {
-                $process = new Process($this->queue);
+                $process = new Process($this->queue, $this->connector->connectorName);
 
                 $this->processes[] = $process;
                 $this->processingCount = count($this->processes);

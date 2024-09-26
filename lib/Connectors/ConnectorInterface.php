@@ -10,6 +10,10 @@ interface ConnectorInterface
 
     public function markAsProcessing(object $job): bool;
 
+    public function markAsFailed(object $job, object $exception): bool;
+
+    public function markAsCompleted(object $job): bool;
+
     public function lock(string $key): bool;
 
     public function unlock(string $key): bool;
