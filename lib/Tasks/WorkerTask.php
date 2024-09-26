@@ -5,6 +5,7 @@ namespace Phalcon\Queue\Tasks;
 use Phalcon\Queue\Connector;
 use Phalcon\Queue\Exceptions\ConnectorException;
 use Phalcon\Queue\Exceptions\QueueException;
+use Phalcon\Queue\Exceptions\RuntimeException;
 use Phalcon\Queue\Jobs\Job;
 use Phalcon\Queue\Signal;
 
@@ -37,12 +38,13 @@ class WorkerTask extends Task
      * @param string $connector
      * @return void
      * @throws ConnectorException
+     * @throws RuntimeException
      */
     public function runAction(string $queue, string $connector = 'database'): void
     {
         $this->queue = $queue;
         $this->configureSignal();
-        $this->connector = new Connector($connector);
+        $this->connector = new Connector($this->di);
 
         do {
             try {

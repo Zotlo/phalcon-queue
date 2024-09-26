@@ -20,9 +20,9 @@ class Redis implements ConnectorInterface
     /**
      * Redis Database
      *
-     * @var int $db
+     * @var int $dbIndex
      */
-    private int $db = 1;
+    private int $dbIndex = 1;
 
     /**
      * @var RedisClient $redis
@@ -35,12 +35,28 @@ class Redis implements ConnectorInterface
     public function __construct()
     {
         $this->redis = Di::getDefault()->get('redis');
+        $config = Di::getDefault()->get('config');
 
         try {
-            $this->redis->select($this->db);
+            if (!empty($config->queues->dbIndex)) {
+                $this->db = (int)$config->queues->dbIndex;
+            }
+
+            $this->redis->select($this->dbIndex);
         } catch (Throwable $exception) {
             throw new RedisSelectDatabaseException($exception->getMessage());
         }
+    }
+
+    /**
+     * @param int $dbIndex
+     * @return $this
+     */
+    public function setDatabaseIndex(int $dbIndex): self
+    {
+        $this->dbIndex = $dbIndex;
+
+        return $this;
     }
 
     public function checkTableAndMigrateIfNecessary(): void

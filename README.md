@@ -8,7 +8,7 @@ open to manage any kind of job.
 Current implementations:
 
 - **SQL** queue adapter.
-- **Redis** queue adapter. _(development continue)_
+- **Redis** queue adapter.
 
 _and more adapter planning development_
 
@@ -47,7 +47,7 @@ The lib provide an interface which allow to implement a queue connection for dif
 servers. Currently the lib provide following implementations:
 
 - **SQL** queue adapter.
-- **Redis** queue adapter. _(development continue)_
+- **Redis** queue adapter.
 
 The queue interface manage all related with the queue system and abstract the job about that.
 
@@ -98,6 +98,7 @@ $di->setShared('config', function () {
     return new \Phalcon\Config\Config([
         'queues'   => [
             'adapter'     => 'database', # redis, aws. very soon
+            'dbIndex'     => 1,          # Redis Database Index (only redis) 
             'supervisors' => [
                 [
                     'queue'           => 'default', # Queue Name

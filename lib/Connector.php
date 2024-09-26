@@ -2,6 +2,8 @@
 
 namespace Phalcon\Queue;
 
+use Phalcon\Config\Config;
+use Phalcon\Di\Di as DependencyInjector;
 use Phalcon\Queue\Connectors\ConnectorInterface;
 use Phalcon\Queue\Connectors\Database;
 use Phalcon\Queue\Connectors\Redis;
@@ -24,21 +26,25 @@ final class Connector
     public ConnectorInterface $adapter;
 
     /**
-     * @throws ConnectorException
+     * Phalcon Application Config
+     *
+     * @var Config $config
      */
-    public function __construct(string $connector = 'database')
-    {
-        $this->connectorName = $connector;
+    private Config $config;
 
-        switch ($connector) {
-            case 'database':
-                $this->adapter = new Database();
-                break;
-            case 'redis':
-                $this->adapter = new Redis();
-                break;
-            default:
-                throw new ConnectorException("Connector '$connector' is not supported");
-        }
+    /**
+     * @throws ConnectorException
+     * @throws Exceptions\RuntimeException
+     */
+    public function __construct(DependencyInjector $di)
+    {
+        $this->config = Utils::discoveryApplicationConfig($di);
+        $this->connectorName = $this->config->queues->adapter;
+
+        $this->adapter = match ($this->connectorName) {
+            'database' => new Database(),
+            'redis' => (new Redis())->setDatabaseIndex($this->config->queues->dbIndex ?? 1),
+            default => throw new ConnectorException("Connector '" . $this->connectorName . "' is not supported"),
+        };
     }
 }

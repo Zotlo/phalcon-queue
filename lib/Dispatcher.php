@@ -2,9 +2,10 @@
 
 namespace Phalcon\Queue;
 
-use Phalcon\Di\Di;
+use Phalcon\Di\Di as DependencyInjector;
 use Phalcon\Queue\Exceptions\ConnectorException;
 use Phalcon\Queue\Exceptions\DatabaseException;
+use Phalcon\Queue\Exceptions\RuntimeException;
 use Phalcon\Queue\Jobs\Job;
 
 final class Dispatcher
@@ -39,11 +40,13 @@ final class Dispatcher
 
     /**
      * @throws ConnectorException
+     * @throws RuntimeException
      */
     public function __construct()
     {
-        $config = Di::getDefault()->get('config');
-        $this->connector = new Connector($config->queues->adapter);
+        /** @var DependencyInjector $di */
+        $di = DependencyInjector::getDefault();
+        $this->connector = new Connector($di);
     }
 
     /**
