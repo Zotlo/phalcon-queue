@@ -5,7 +5,7 @@ namespace Phalcon\Queue;
 use Phalcon\Config\Config;
 use Phalcon\Di\Di as DependencyInjector;
 use Phalcon\Queue\Connectors\ConnectorInterface;
-use Phalcon\Queue\Connectors\Database;
+use Phalcon\Queue\Connectors\MySQL;
 use Phalcon\Queue\Connectors\Redis;
 use Phalcon\Queue\Exceptions\ConnectorException;
 
@@ -42,7 +42,7 @@ final class Connector
         $this->connectorName = $this->config->queues->adapter;
 
         $this->adapter = match ($this->connectorName) {
-            'database' => new Database(),
+            'mysql' => new MySQL(),
             'redis' => (new Redis())->setDatabaseIndex($this->config->queues->dbIndex ?? 1),
             default => throw new ConnectorException("Connector '" . $this->connectorName . "' is not supported"),
         };

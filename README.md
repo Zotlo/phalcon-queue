@@ -7,8 +7,9 @@ open to manage any kind of job.
 
 Current implementations:
 
-- **SQL** queue adapter.
+- **MySQL** queue adapter.
 - **Redis** queue adapter.
+- **SQLite** queue adapter.
 
 _and more adapter planning development_
 
@@ -46,15 +47,17 @@ Queue
 The lib provide an interface which allow to implement a queue connection for different queue
 servers. Currently the lib provide following implementations:
 
-- **SQL** queue adapter.
+- **MySQL** queue adapter.
 - **Redis** queue adapter.
+- **SQLite** queue adapter.
 
 The queue interface manage all related with the queue system and abstract the job about that.
 
 It require the queue system client:
 
-- SQL : Phalcon\Db\Adapter\Pdo
+- MySQL : Phalcon\Db\Adapter\Pdo
 - Redis : Predis\Client
+- SQLite : ext-pdo
 
 And was well the source *queue name*. The consumer will need additional queues to manage the process:
 
@@ -97,7 +100,7 @@ Define Supervisors in Phalcon config. It is possible to define more than one Que
 $di->setShared('config', function () {
     return new \Phalcon\Config\Config([
         'queues'   => [
-            'adapter'     => 'database', # redis, aws. very soon
+            'adapter'     => 'mysql',    # sqlite, redis, aws. very soon
             'dbIndex'     => 1,          # Redis Database Index (only redis) 
             'supervisors' => [
                 [

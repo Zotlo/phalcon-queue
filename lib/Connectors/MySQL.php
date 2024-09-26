@@ -9,14 +9,14 @@ use Phalcon\Di\Di;
 use Phalcon\Queue\Exceptions\DatabaseException;
 use Phalcon\Queue\Jobs\Job;
 
-class Database implements ConnectorInterface
+class MySQL extends PDOStorage
 {
     /**
      * Database Interface
      *
      * @var DatabaseInterface $db
      */
-    private DatabaseInterface $db;
+    protected DatabaseInterface $db;
 
     public function __construct()
     {
