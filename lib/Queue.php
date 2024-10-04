@@ -252,6 +252,10 @@ final class Queue
         $balanceShift = $this->balanceMaxShift;
         if ($this->balanceMaxShift > $pendingJobCount) {
             $balanceShift = $pendingJobCount;
+
+            if ($balanceShift === 0) {
+                $balanceShift = 1;
+            }
         }
 
         if ($this->debug) {
