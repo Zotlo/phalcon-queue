@@ -7,8 +7,8 @@ use ReflectionClass;
 
 abstract class Job extends Injectable implements JobInterface
 {
-    /** @var string $id */
-    public string $id;
+    /** @var null|string $id */
+    public ?string $id = null;
 
     /** @var string $queue */
     protected string $queue = "default";
@@ -65,7 +65,9 @@ abstract class Job extends Injectable implements JobInterface
      */
     public function __serialize(): array
     {
-        $this->id = uniqid('job-', true);
+        if (is_null($this->id)) {
+            $this->id = uniqid('job-', true);
+        }
 
         $reflection = new ReflectionClass($this);
         $properties = $reflection->getProperties();
