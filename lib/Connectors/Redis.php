@@ -39,7 +39,7 @@ class Redis implements ConnectorInterface
 
         try {
             if (!empty($config->queues->dbIndex)) {
-                $this->db = (int)$config->queues->dbIndex;
+                $this->dbIndex = (int)$config->queues->dbIndex;
             }
 
             $this->redis->select($this->dbIndex);
