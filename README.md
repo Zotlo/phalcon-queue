@@ -242,10 +242,10 @@ $job = async(function (){
 });
 
 // Other your code
-$status = await($job) // return ['failed','completed']
+$status = await($job); // return ['failed','completed']
 
 // Waits until the job succeeds or fails. If you want to manage all processes, send the 'manageable' value as 'true'.
-$status = await($job, true) // return ['pending','processing','failed','completed']
+$status = await($job, true); // return ['pending','processing','failed','completed']
 ```
 
 ### IMPORTANT: You can't do that
