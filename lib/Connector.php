@@ -7,6 +7,7 @@ use Phalcon\Di\Di as DependencyInjector;
 use Phalcon\Queue\Connectors\ConnectorInterface;
 use Phalcon\Queue\Connectors\MySQL;
 use Phalcon\Queue\Connectors\Redis;
+use Phalcon\Queue\Connectors\SQLite;
 use Phalcon\Queue\Exceptions\ConnectorException;
 
 final class Connector
@@ -43,6 +44,7 @@ final class Connector
 
         $this->adapter = match ($this->connectorName) {
             'mysql' => new MySQL(),
+            'sqlite' => new SQLite(),
             'redis' => (new Redis())->setDatabaseIndex($this->config->queues->dbIndex ?? 1),
             default => throw new ConnectorException("Connector '" . $this->connectorName . "' is not supported"),
         };
