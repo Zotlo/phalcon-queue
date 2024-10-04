@@ -97,7 +97,7 @@ class WorkerTask extends Task
 
         $this->running();
 
-        $lockKey = 'QUEUE_JOB_LOCK_' . $job->id;
+        $lockKey = 'JOB_LOCK_' . $job->id;
         if ($this->connector->adapter->lock($lockKey)) {
             if ($this->connector->adapter->markAsProcessing($job)) {
                 /** @var Job $jobClass */

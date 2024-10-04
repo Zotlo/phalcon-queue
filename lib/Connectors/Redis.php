@@ -72,24 +72,6 @@ class Redis implements ConnectorInterface
      */
     public function markAsProcessing(object $job): bool
     {
-        try {
-            $values = [
-                'id'           => $job->id,
-                'queue'        => $job->queue,
-                'payload'      => serialize($job),
-                'attempts'     => $job->attempts,
-                'reserved_at'  => gmdate('Y-m-d H:i:s'),
-                'available_at' => $job->available_at,
-                'created_at'   => $job->created_at,
-            ];
-
-            $key = $this->prefix . 'PROCESSING_JOBS';
-            $this->redis->lPush($key, json_encode($values));
-            $this->redis->expire($key, 30);
-        } catch (Throwable $exception) {
-            return false;
-        }
-
         return true;
     }
 
@@ -235,11 +217,36 @@ class Redis implements ConnectorInterface
     }
 
     /**
-     * @param string $jobId
+     * @param Job $job
      * @return Status
      */
-    public function getJobStatus(string $jobId): Status
+    public function getJobStatus(Job $job): Status
     {
+        try {
+            if ($this->redis->exists($this->prefix . 'JOB_LOCK' . $job->id)) {
+                return Status::PROCESSING;
+            }
+
+            $pendingJobs = $this->redis->lRange($this->prefix . $job->getQueue() . '_PENDING_JOBS', 0, -1);
+            foreach ($pendingJobs as $pendingJob) {
+                $jobObject = json_decode($pendingJob);
+                if ($job->id === $jobObject->id) {
+                    return Status::PENDING;
+                }
+            }
+
+            $failedJobs = $this->redis->lRange($this->prefix . 'FAILED_JOBS', 0, -1);
+            foreach ($failedJobs as $failedJob) {
+                $jobObject = json_decode($failedJob);
+
+                if ($job->id === $jobObject->job_id) {
+                    return Status::FAILED;
+                }
+            }
+        } catch (Throwable $throwable) {
+            return Status::UNKNOWN;
+        }
+
         return Status::COMPLETED;
     }
 }

@@ -25,5 +25,5 @@ interface ConnectorInterface
 
     public function getPendingJobs(): array;
 
-    public function getJobStatus(string $jobId): Status;
+    public function getJobStatus(Job $job): Status;
 }

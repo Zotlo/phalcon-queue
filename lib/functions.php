@@ -4,8 +4,6 @@ use Opis\Closure\SerializableClosure as Closure;
 use Phalcon\Di\Di as DependencyInjector;
 use Phalcon\Queue\Connector;
 use Phalcon\Queue\Dispatcher;
-use Phalcon\Queue\Exceptions\ConnectorException;
-use Phalcon\Queue\Exceptions\RuntimeException;
 use Phalcon\Queue\Jobs\AsyncJob;
 use Phalcon\Queue\Jobs\Job;
 use Phalcon\Queue\Jobs\Status;
@@ -40,7 +38,7 @@ if (!function_exists('await')) {
         }
 
         do {
-            switch ($connector->adapter->getJobStatus($job->id)) {
+            switch ($connector->adapter->getJobStatus($job)) {
                 case Status::COMPLETED:
                     return Status::COMPLETED;
                 case Status::FAILED:

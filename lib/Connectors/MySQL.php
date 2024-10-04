@@ -211,21 +211,21 @@ class MySQL extends PDOStorage
     }
 
     /**
-     * @param string $jobId
+     * @param Job $job
      * @return Status
      */
-    public function getJobStatus(string $jobId): Status
+    public function getJobStatus(Job $job): Status
     {
         try {
             // Get Job
             $job = $this->db->query('SELECT * FROM jobs WHERE job_id = :job_id', [
-                'job_id' => $jobId
+                'job_id' => $job->id
             ])->fetch(PDO::FETCH_OBJ);
 
             // Search Job Failed
             if (empty($job)) {
                 $job = $this->db->query('SELECT * FROM jobs_failed WHERE job_id = :job_id', [
-                    'job_id' => $jobId
+                    'job_id' => $job->id
                 ])->fetch(PDO::FETCH_OBJ);
 
                 if (!empty($job)) {
