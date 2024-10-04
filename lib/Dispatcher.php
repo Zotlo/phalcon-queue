@@ -5,10 +5,9 @@ namespace Phalcon\Queue;
 use Phalcon\Di\Di as DependencyInjector;
 use Phalcon\Queue\Exceptions\ConnectorException;
 use Phalcon\Queue\Exceptions\DatabaseException;
-use Phalcon\Queue\Exceptions\JobDispatchException;
+use Phalcon\Queue\Exceptions\RedisException;
 use Phalcon\Queue\Exceptions\RuntimeException;
 use Phalcon\Queue\Jobs\Job;
-use Phalcon\Queue\Jobs\Status;
 
 final class Dispatcher
 {
@@ -39,13 +38,6 @@ final class Dispatcher
      * @var int $delay
      */
     private int $delay = 0;
-
-    /**
-     * Last Inserted Job ID
-     *
-     * @var string $lastInsertedJobId
-     */
-    private string $lastInsertedJobId;
 
     /**
      * @throws ConnectorException
@@ -85,23 +77,6 @@ final class Dispatcher
     }
 
     /**
-     * @return Status
-     * @throws JobDispatchException
-     */
-    public function await(): Status
-    {
-        do {
-            if (property_exists($this, 'lastInsertedJobId') && !empty($this->lastInsertedJobId)) {
-                throw new JobDispatchException();
-            }
-
-            // TODO :: CHECK JOB STATUS
-
-            usleep(rand(100, 800));
-        } while (true);
-    }
-
-    /**
      * Add delay dispatching job
      *
      * @param int $delay
@@ -128,7 +103,7 @@ final class Dispatcher
     }
 
     /**
-     * @throws DatabaseException
+     * @throws DatabaseException|RedisException
      */
     public function __destruct()
     {

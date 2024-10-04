@@ -228,7 +228,7 @@ final class Queue
 
         if (!empty($pendingJobs)) {
             if ($this->processingCount < $this->processMax && $this->processingCount <= $pendingJobCount) {
-                $this->scaleUp();
+                $this->scaleUp($pendingJobCount);
             } else {
                 if ($this->processingCount > $pendingJobCount) {
                     $this->scaleDown();
@@ -244,19 +244,25 @@ final class Queue
     /**
      * Run new process
      *
+     * @param int $pendingJobCount
      * @return void
      */
-    private function scaleUp(): void
+    private function scaleUp(int $pendingJobCount): void
     {
+        $balanceShift = $this->balanceMaxShift;
+        if ($this->balanceMaxShift > $pendingJobCount) {
+            $balanceShift = $pendingJobCount;
+        }
+
         if ($this->debug) {
             try {
-                $this->logger->debug('SCALING UP SHIFT: ' . $this->balanceMaxShift);
+                $this->logger->debug('SCALING UP SHIFT: ' . $balanceShift);
             } catch (\Throwable $exception) {
                 //
             }
         }
 
-        for ($i = 1; $i <= $this->balanceMaxShift; $i++) {
+        for ($i = 1; $i <= $balanceShift; $i++) {
             if ($this->processingCount <= $this->processMax) {
                 $process = new Process($this->queue, $this->connector->connectorName);
 

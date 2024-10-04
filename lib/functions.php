@@ -1,8 +1,11 @@
 <?php declare(strict_types=1);
 
 use Opis\Closure\SerializableClosure as Closure;
+use Phalcon\Di\Di as DependencyInjector;
+use Phalcon\Queue\Connector;
 use Phalcon\Queue\Dispatcher;
-use Phalcon\Queue\Exceptions\JobDispatchException;
+use Phalcon\Queue\Exceptions\ConnectorException;
+use Phalcon\Queue\Exceptions\RuntimeException;
 use Phalcon\Queue\Jobs\AsyncJob;
 use Phalcon\Queue\Jobs\Job;
 use Phalcon\Queue\Jobs\Status;
@@ -10,23 +13,52 @@ use Phalcon\Queue\Jobs\Status;
 if (!function_exists('async')) {
     /**
      * @param callable $callable
-     * @return void
+     * @return Job
      */
-    function async(callable $callable): void
+    function async(callable $callable): Job
     {
-        dispatch(new AsyncJob((new Closure($callable))->serialize()));
+        $job = new AsyncJob((new Closure($callable))->serialize());
+        dispatch($job);
+        return $job;
     }
 }
 
 if (!function_exists('await')) {
     /**
-     * @param Dispatcher $job
+     * @param Job $job
+     * @param bool $manageable
      * @return Status
-     * @throws JobDispatchException
      */
-    function await(Dispatcher $job): Status
+    function await(Job $job, bool $manageable = false): Status
     {
-        return $job->await();
+        try {
+            /** @var DependencyInjector $di */
+            $di = DependencyInjector::getDefault();
+            $connector = new Connector($di);
+        } catch (Throwable $throwable) {
+            return Status::UNKNOWN;
+        }
+
+        do {
+            switch ($connector->adapter->getJobStatus($job->id)) {
+                case Status::COMPLETED:
+                    return Status::COMPLETED;
+                case Status::FAILED:
+                    return Status::FAILED;
+                case Status::PROCESSING:
+                    if ($manageable)
+                        return Status::PROCESSING;
+                    break;
+                case Status::PENDING:
+                    if ($manageable)
+                        return Status::PENDING;
+                    break;
+                default:
+                    return Status::UNKNOWN;
+            }
+
+            usleep(rand(100000, 125000));
+        } while (true);
     }
 }
 

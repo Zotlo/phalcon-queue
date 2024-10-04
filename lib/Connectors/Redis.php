@@ -3,8 +3,10 @@
 namespace Phalcon\Queue\Connectors;
 
 use Phalcon\Di\Di;
+use Phalcon\Queue\Exceptions\RedisException;
 use Phalcon\Queue\Exceptions\RedisSelectDatabaseException;
 use Phalcon\Queue\Jobs\Job;
+use Phalcon\Queue\Jobs\Status;
 use Redis as RedisClient;
 use Throwable;
 
@@ -142,27 +144,30 @@ class Redis implements ConnectorInterface
 
     /**
      * @param Job $job
-     * @return object|false
+     * @return string
+     * @throws RedisException
      */
-    public function insertJob(Job $job): object|false
+    public function insertJob(Job $job): string
     {
         try {
-            $jobId = uniqid();
+            $serializedJob = serialize($job);
 
             $values = [
-                'id'           => $jobId,
+                'id'           => $job->id,
                 'queue'        => $job->getQueue(),
-                'payload'      => serialize($job),
+                'payload'      => $serializedJob,
                 'attempts'     => 0,
                 'reserved_at'  => null,
                 'available_at' => gmdate('Y-m-d H:i:s', strtotime('+' . $job->getDelay() . ' seconds')),
                 'created_at'   => gmdate('Y-m-d H:i:s'),
             ];
 
-            return $this->redis->lPush($this->prefix . $job->getQueue() . '_PENDING_JOBS', json_encode($values));
+            $this->redis->lPush($this->prefix . $job->getQueue() . '_PENDING_JOBS', json_encode($values));
         } catch (Throwable $exception) {
-            return false;
+            throw new RedisException($exception->getMessage(), $exception->getCode(), $exception);
         }
+
+        return $job->id;
     }
 
     /**
@@ -209,5 +214,14 @@ class Redis implements ConnectorInterface
         }
 
         return $pendingJobs;
+    }
+
+    /**
+     * @param string $jobId
+     * @return Status
+     */
+    public function getJobStatus(string $jobId): Status
+    {
+        return Status::COMPLETED;
     }
 }

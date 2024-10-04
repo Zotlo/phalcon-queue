@@ -8,4 +8,5 @@ enum Status: string
     case PROCESSING = 'processing';
     case FAILED = 'failed';
     case COMPLETED = 'completed';
+    case UNKNOWN = 'unknown';
 }

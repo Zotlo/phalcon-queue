@@ -3,9 +3,13 @@
 namespace Phalcon\Queue\Jobs;
 
 use Phalcon\Di\Injectable;
+use ReflectionClass;
 
 abstract class Job extends Injectable implements JobInterface
 {
+    /** @var string $id */
+    public string $id;
+
     /** @var string $queue */
     protected string $queue = "default";
 
@@ -54,5 +58,23 @@ abstract class Job extends Injectable implements JobInterface
     public function setDelay(int $delay): void
     {
         $this->delay = $delay;
+    }
+
+    /**
+     * @return array
+     */
+    public function __serialize(): array
+    {
+        $this->id = uniqid('job-', true);
+
+        $reflection = new ReflectionClass($this);
+        $properties = $reflection->getProperties();
+
+        $data = [];
+        foreach ($properties as $property) {
+            $data[$property->getName()] = $property->getValue($this);
+        }
+
+        return $data;
     }
 }

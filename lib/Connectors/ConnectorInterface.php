@@ -3,6 +3,7 @@
 namespace Phalcon\Queue\Connectors;
 
 use Phalcon\Queue\Jobs\Job;
+use Phalcon\Queue\Jobs\Status;
 
 interface ConnectorInterface
 {
@@ -18,9 +19,11 @@ interface ConnectorInterface
 
     public function unlock(string $key): bool;
 
-    public function insertJob(Job $job): object|false;
+    public function insertJob(Job $job): string;
 
     public function getPendingJob(): object|false;
 
     public function getPendingJobs(): array;
+
+    public function getJobStatus(string $jobId): Status;
 }

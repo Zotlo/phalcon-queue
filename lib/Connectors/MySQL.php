@@ -2,12 +2,14 @@
 
 namespace Phalcon\Queue\Connectors;
 
+use PDO;
 use Phalcon\Db\Adapter\AdapterInterface as DatabaseInterface;
 use Phalcon\Db\Column;
 use Phalcon\Db\Index;
 use Phalcon\Di\Di;
 use Phalcon\Queue\Exceptions\DatabaseException;
 use Phalcon\Queue\Jobs\Job;
+use Phalcon\Queue\Jobs\Status;
 
 class MySQL extends PDOStorage
 {
@@ -58,9 +60,9 @@ class MySQL extends PDOStorage
     {
         try {
             $query = $this->db->query(
-                'INSERT INTO jobs_failed (job_id, queue, payload, attempts, exception) VALUES (:jobId, :queue, :payload, :attempts, :exception)',
+                'INSERT INTO jobs_failed (job_id, queue, payload, attempts, exception) VALUES (:job_id, :queue, :payload, :attempts, :exception)',
                 [
-                    'jobId'     => $job->id,
+                    'job_id'    => $job->job_id,
                     'queue'     => $job->queue,
                     'payload'   => $job->payload,
                     'attempts'  => $job->attempts,
@@ -145,17 +147,20 @@ class MySQL extends PDOStorage
 
     /**
      * @param Job $job
-     * @return object|false
+     * @return string
      * @throws DatabaseException
      */
-    public function insertJob(Job $job): object|false
+    public function insertJob(Job $job): string
     {
         try {
-            return $this->db->query(
-                'INSERT INTO jobs (queue, payload, attempts, available_at, created_at) VALUES (:queue, :payload, :attempts, :available_at, :created_at)',
+            $serializedJob = serialize($job);
+
+            $this->db->query(
+                'INSERT INTO jobs (job_id, queue, payload, attempts, available_at, created_at) VALUES (:job_id, :queue, :payload, :attempts, :available_at, :created_at)',
                 [
+                    'job_id'       => $job->id,
                     'queue'        => $job->getQueue(),
-                    'payload'      => serialize($job),
+                    'payload'      => $serializedJob,
                     'attempts'     => 0,
                     'available_at' => gmdate('Y-m-d H:i:s', strtotime('+' . $job->getDelay() . ' seconds')),
                     'created_at'   => gmdate('Y-m-d H:i:s'),
@@ -164,6 +169,8 @@ class MySQL extends PDOStorage
         } catch (\Throwable $exception) {
             throw new DatabaseException($exception->getMessage(), $exception->getCode(), $exception);
         }
+
+        return $this->db->lastInsertId();
     }
 
     /**
@@ -204,6 +211,41 @@ class MySQL extends PDOStorage
     }
 
     /**
+     * @param string $jobId
+     * @return Status
+     */
+    public function getJobStatus(string $jobId): Status
+    {
+        try {
+            // Get Job
+            $job = $this->db->query('SELECT * FROM jobs WHERE job_id = :job_id', [
+                'job_id' => $jobId
+            ])->fetch(PDO::FETCH_OBJ);
+
+            // Search Job Failed
+            if (empty($job)) {
+                $job = $this->db->query('SELECT * FROM jobs_failed WHERE job_id = :job_id', [
+                    'job_id' => $jobId
+                ])->fetch(PDO::FETCH_OBJ);
+
+                if (!empty($job)) {
+                    return Status::FAILED;
+                }
+            } else {
+                if (empty($job->reserved_at)) {
+                    return Status::PENDING;
+                } else {
+                    return Status::PROCESSING;
+                }
+            }
+        } catch (\Throwable $exception) {
+            return Status::UNKNOWN;
+        }
+
+        return Status::COMPLETED;
+    }
+
+    /**
      * Check & Migrate Jobs SQL Table
      *
      * @return void
@@ -235,6 +277,13 @@ class MySQL extends PDOStorage
                         'primary'       => true,
                         'autoIncrement' => true,
                         'notNull'       => true,
+                    ]
+                ),
+                new Column('job_id',
+                    [
+                        'type'    => Column::TYPE_VARCHAR,
+                        'size'    => 40,
+                        'notNull' => true,
                     ]
                 ),
                 new Column('queue',
@@ -314,7 +363,8 @@ class MySQL extends PDOStorage
                 ),
                 new Column('job_id',
                     [
-                        'type'    => Column::TYPE_BIGINTEGER,
+                        'type'    => Column::TYPE_VARCHAR,
+                        'size'    => 40,
                         'notNull' => true,
                     ]
                 ),
