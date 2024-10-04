@@ -223,7 +223,7 @@ class Redis implements ConnectorInterface
     public function getJobStatus(Job $job): Status
     {
         try {
-            if ($this->redis->exists($this->prefix . 'JOB_LOCK' . $job->id)) {
+            if ($this->redis->exists($this->prefix . 'JOB_LOCK_' . $job->id)) {
                 return Status::PROCESSING;
             }
 
