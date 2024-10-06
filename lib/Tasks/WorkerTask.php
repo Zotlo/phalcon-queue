@@ -19,6 +19,7 @@ class WorkerTask extends Task
 
     // Worker Status
     private bool $isIdle = false;
+    private bool $jobProcessing = false;
 
     // Signal Status
     private const STATUS_RUNNING = "RUNNING";
@@ -69,8 +70,14 @@ class WorkerTask extends Task
             case SIGHUP:
             case SIGINT:
                 do {
+                    if ($this->jobProcessing) {
+                        sleep(rand(1, 5));
+                        continue;
+                    }
+
                     $this->sleep();
-                } while (true);
+                } while ($this->jobProcessing);
+                break;
             case SIGKILL:
                 exit(0);
             default:
@@ -122,17 +129,18 @@ class WorkerTask extends Task
                 }
 
                 try {
+                    $this->jobProcessing = true;
+
                     $jobClass->startJobTimer();
                     $jobClass->handle();
 
                     $this->connector->adapter->markAsCompleted($job);
                 } catch (\Throwable $exception) {
                     $this->connector->adapter->markAsFailed($job, $exception);
-
-                    return;
                 }
             }
 
+            $this->jobProcessing = false;
             $this->connector->adapter->unlock($lockKey);
         }
     }
