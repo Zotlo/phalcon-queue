@@ -110,6 +110,9 @@ class WorkerTask extends Task
                     } catch (\Throwable $exception) {
                         //
                     }
+
+                    $this->idle();
+                    return;
                 }
 
                 $this->connector->adapter->markAsCompleted($job);
