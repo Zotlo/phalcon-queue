@@ -124,25 +124,17 @@ class WorkerTask extends Task
                 try {
                     $jobClass->startJobTimer();
                     $jobClass->handle();
-                } catch (\Throwable $exception) {
-                    try {
-                        $this->connector->adapter->markAsFailed($job, $exception);
-                        $this->connector->adapter->unlock($lockKey);
-                    } catch (\Throwable $exception) {
-                        //
-                    }
 
-                    $this->idle();
+                    $this->connector->adapter->markAsCompleted($job);
+                } catch (\Throwable $exception) {
+                    $this->connector->adapter->markAsFailed($job, $exception);
+
                     return;
                 }
-
-                $this->connector->adapter->markAsCompleted($job);
             }
 
             $this->connector->adapter->unlock($lockKey);
         }
-
-        $this->idle();
     }
 
     /**
