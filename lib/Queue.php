@@ -268,7 +268,7 @@ final class Queue
 
         for ($i = 1; $i <= $balanceShift; $i++) {
             if ($this->processingCount <= $this->processMax) {
-                $process = new Process($this->queue, $this->connector->connectorName);
+                $process = new Process($this->queue);
 
                 $this->processes[] = $process;
                 $this->processingCount = count($this->processes);

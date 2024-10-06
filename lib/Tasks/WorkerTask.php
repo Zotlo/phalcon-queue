@@ -35,12 +35,11 @@ class WorkerTask extends Task
      * Handle Queue Worker Process
      *
      * @param string $queue
-     * @param string $connector
      * @return void
      * @throws ConnectorException
      * @throws RuntimeException
      */
-    public function runAction(string $queue, string $connector = 'database'): void
+    public function runAction(string $queue): void
     {
         $this->queue = $queue;
         $this->configureSignal();
