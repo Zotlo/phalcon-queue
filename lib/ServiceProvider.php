@@ -43,7 +43,7 @@ final class ServiceProvider implements ServiceProviderInterface
     {
         // Master
         $di->set($this->masterTaskName, function () {
-            return new QueueTask();
+            return (new QueueTask())->setWorkerTaskName($this->workerTaskName);
         });
 
         // Worker Task

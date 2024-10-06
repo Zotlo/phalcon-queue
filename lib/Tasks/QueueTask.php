@@ -32,8 +32,22 @@ class QueueTask extends Task
         // Start Master Process
         (new Queue())
             ->setQueue($queue)
+            ->setWorkerTaskName($this->workerTaskName)
             ->setConfig($this->config)
             ->setConnector(new Connector($this->di))
             ->work();
+    }
+
+    /**
+     * Set the name of the worker task
+     *
+     * @param string $taskName
+     * @return self
+     */
+    public function setWorkerTaskName(string $taskName): self
+    {
+        $this->workerTaskName = $taskName;
+
+        return $this;
     }
 }

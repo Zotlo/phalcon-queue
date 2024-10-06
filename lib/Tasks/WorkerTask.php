@@ -2,7 +2,6 @@
 
 namespace Phalcon\Queue\Tasks;
 
-use Phalcon\Config\Config;
 use Phalcon\Queue\Connector;
 use Phalcon\Queue\Exceptions\ConnectorException;
 use Phalcon\Queue\Exceptions\QueueException;

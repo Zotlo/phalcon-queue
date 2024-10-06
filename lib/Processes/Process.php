@@ -18,9 +18,9 @@ class Process
     /** @var bool $isIdle */
     private bool $isIdle = false;
 
-    public function __construct(string $queue)
+    public function __construct(string $queue, string $workerTaskName)
     {
-        $this->initializeShellCommand($queue);
+        $this->initializeShellCommand($queue, $workerTaskName);
     }
 
     /**
@@ -44,11 +44,12 @@ class Process
 
     /**
      * @param string $queue
+     * @param string $workerTaskName
      * @return void
      */
-    private function initializeShellCommand(string $queue): void
+    private function initializeShellCommand(string $queue, string $workerTaskName): void
     {
-        $command = PHP_BINARY . ' ' . getcwd() . '/' . $_SERVER['SCRIPT_NAME'] . ' ' . 'QueueWorker run ' . $queue;
+        $command = PHP_BINARY . ' ' . getcwd() . '/' . $_SERVER['SCRIPT_NAME'] . ' ' . $workerTaskName . ' run ' . $queue;
         $this->process = CLIProcess::fromShellCommandline($command);
     }
 

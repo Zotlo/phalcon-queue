@@ -30,6 +30,13 @@ final class Queue
     public string $queue = 'default';
 
     /**
+     * Worker Process Phalcon Task Name
+     *
+     * @var string
+     */
+    private string $workerTaskName;
+
+    /**
      * Active processes
      *
      * @var array<Process> $processes
@@ -62,7 +69,7 @@ final class Queue
      *
      * @var int $timeout
      */
-    private int $timeout = 120;
+    private int $timeout = 0;
 
     /**
      * Process fire count
@@ -120,6 +127,17 @@ final class Queue
     public function setQueue(string $queue): self
     {
         $this->queue = $queue;
+
+        return $this;
+    }
+
+    /**
+     * @param string $workerTaskName
+     * @return $this
+     */
+    public function setWorkerTaskName(string $workerTaskName): self
+    {
+        $this->workerTaskName = $workerTaskName;
 
         return $this;
     }
@@ -268,7 +286,7 @@ final class Queue
 
         for ($i = 1; $i <= $balanceShift; $i++) {
             if ($this->processingCount <= $this->processMax) {
-                $process = new Process($this->queue);
+                $process = new Process($this->queue, $this->workerTaskName);
 
                 $this->processes[] = $process;
                 $this->processingCount = count($this->processes);
