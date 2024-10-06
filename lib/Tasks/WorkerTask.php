@@ -2,6 +2,7 @@
 
 namespace Phalcon\Queue\Tasks;
 
+use Phalcon\Config\Config;
 use Phalcon\Queue\Connector;
 use Phalcon\Queue\Exceptions\ConnectorException;
 use Phalcon\Queue\Exceptions\QueueException;
@@ -87,6 +88,19 @@ class WorkerTask extends Task
     private function process(): void
     {
         $job = $this->connector->adapter->getPendingJob($this->queue);
+        $config = $this->di->getShared('config');
+
+        foreach ($config->queues->supervisors as $supervisor) {
+            if ($supervisor->queue === $this->queue) {
+                break;
+            }
+        }
+
+        if (empty($supervisor)) {
+            $this->sleep();
+
+            return;
+        }
 
         if (empty($job)) {
             $this->sleep();
@@ -102,11 +116,19 @@ class WorkerTask extends Task
                 /** @var Job $jobClass */
                 $jobClass = unserialize($job->payload);
 
+                if ($jobClass->getTimeout() === 0) {
+                    if (!empty($supervisor->timeout)) {
+                        $jobClass->setTimeout($supervisor->timeout);
+                    }
+                }
+
                 try {
+                    $jobClass->startJobTimer();
                     $jobClass->handle();
                 } catch (\Throwable $exception) {
                     try {
                         $this->connector->adapter->markAsFailed($job, $exception);
+                        $this->connector->adapter->unlock($lockKey);
                     } catch (\Throwable $exception) {
                         //
                     }

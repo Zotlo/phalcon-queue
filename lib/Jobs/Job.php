@@ -1,8 +1,9 @@
-<?php declare(strict_types=1);
+<?php declare(strict_types=1, ticks=1);
 
 namespace Phalcon\Queue\Jobs;
 
 use Phalcon\Di\Injectable;
+use Phalcon\Queue\Exceptions\TimeoutException;
 use ReflectionClass;
 
 abstract class Job extends Injectable implements JobInterface
@@ -16,6 +17,9 @@ abstract class Job extends Injectable implements JobInterface
     /** @var int $delay */
     protected int $delay = 0;
 
+    /** @var int $timeout */
+    protected int $timeout = 0;
+
     /**
      * Execute Job Function
      *
@@ -24,6 +28,23 @@ abstract class Job extends Injectable implements JobInterface
     public function handle(): void
     {
         //
+    }
+
+    /**
+     * @return void
+     * @throws TimeoutException
+     */
+    public function startJobTimer(): void
+    {
+        if ($this->timeout > 0) {
+            pcntl_signal(SIGALRM, function () {
+                throw new TimeoutException('Job Timeout: ' . $this->timeout);
+            });
+
+            pcntl_async_signals(true);
+
+            pcntl_alarm($this->timeout);
+        }
     }
 
     /**
@@ -43,6 +64,14 @@ abstract class Job extends Injectable implements JobInterface
     }
 
     /**
+     * @return int
+     */
+    public function getTimeout(): int
+    {
+        return $this->timeout;
+    }
+
+    /**
      * @param string $queue
      * @return void
      */
@@ -58,6 +87,15 @@ abstract class Job extends Injectable implements JobInterface
     public function setDelay(int $delay): void
     {
         $this->delay = $delay;
+    }
+
+    /**
+     * @param int $timeout
+     * @return void
+     */
+    public function setTimeout(int $timeout): void
+    {
+        $this->timeout = $timeout;
     }
 
     /**
