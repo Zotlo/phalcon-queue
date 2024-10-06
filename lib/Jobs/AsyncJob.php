@@ -26,6 +26,6 @@ class AsyncJob extends Job
     {
         $closureClass = new Closure(fn() => null);
         $closureClass->unserialize($this->closureString);
-        $closureClass->getClosure()();
+        $closureClass->getClosure()($this->di);
     }
 }
