@@ -4,7 +4,7 @@ namespace Phalcon\Queue;
 
 use Phalcon\Di\DiInterface as DependencyInjector;
 use Phalcon\Di\ServiceProviderInterface;
-use Phalcon\Queue\Tasks\{ExampleTask, QueueTask, WorkerTask};
+use Phalcon\Queue\Tasks\{QueueTask, WorkerTask};
 
 /**
  * Phalcon 5 Queue Service Provider
@@ -14,6 +14,14 @@ use Phalcon\Queue\Tasks\{ExampleTask, QueueTask, WorkerTask};
  */
 final class ServiceProvider implements ServiceProviderInterface
 {
+    public function __construct(
+        protected string $masterTaskName = 'QueueTask',
+        protected string $workerTaskName = 'QueueWorkerTask'
+    )
+    {
+        //
+    }
+
     /**
      * Register Phalcon Queue
      *
@@ -34,18 +42,13 @@ final class ServiceProvider implements ServiceProviderInterface
     private function share(DependencyInjector $di): void
     {
         // Master
-        $di->set('QueueTask', function () {
+        $di->set($this->masterTaskName, function () {
             return new QueueTask();
         });
 
         // Worker Task
-        $di->set('QueueWorkerTask', function () {
+        $di->set($this->workerTaskName, function () {
             return new WorkerTask();
-        });
-
-        // Example Task
-        $di->set('ExampleTask', function () {
-            return new ExampleTask();
         });
     }
 }
