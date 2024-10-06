@@ -41,9 +41,11 @@ final class ServiceProvider implements ServiceProviderInterface
      */
     private function share(DependencyInjector $di): void
     {
+        $workerTaskName = $this->workerTaskName;
+
         // Master
-        $di->set($this->masterTaskName, function () {
-            return (new QueueTask())->setWorkerTaskName($this->workerTaskName);
+        $di->set($this->masterTaskName, function () use ($workerTaskName) {
+            return (new QueueTask())->setWorkerTaskName($workerTaskName);
         });
 
         // Worker Task
