@@ -227,8 +227,8 @@ final class Queue
 
         if ($this->debug) {
             try {
-                $this->logger->info('PENDING COUNT: ' . $pendingJobCount);
-                $this->logger->info('PROCESSING COUNT: ' . $this->processingCount);
+                $this->logger->debug('PENDING COUNT: ' . $pendingJobCount);
+                $this->logger->debug('PROCESSING COUNT: ' . $this->processingCount);
             } catch (\Throwable $exception) {
                 //
             }
@@ -294,7 +294,7 @@ final class Queue
                 $process->start();
                 if ($this->debug) {
                     try {
-                        $this->logger->info('PROCESS STARTING PID: ' . $process->getPid());
+                        $this->logger->debug('PROCESS STARTING PID: ' . $process->getPid());
                     } catch (\Throwable $e) {
                         //
                     }
@@ -326,7 +326,7 @@ final class Queue
             if (!$process->isRunning() || $process->isIdle()) {
                 if ($this->debug) {
                     try {
-                        $this->logger->info('IDLE PROCESS STOPPING PID: ' . $process->getPid());
+                        $this->logger->debug('IDLE PROCESS STOPPING PID: ' . $process->getPid());
                     } catch (\Throwable $exception) {
                         //
                     }
@@ -419,7 +419,7 @@ final class Queue
             ]);
 
             try {
-                $this->logger->info('INITIALIZED PHALCON QUEUE LOGGER');
+                $this->logger->debug('INITIALIZED PHALCON QUEUE LOGGER');
             } catch (\Throwable $exception) {
                 //
             }
