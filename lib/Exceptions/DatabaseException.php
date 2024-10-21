@@ -2,7 +2,7 @@
 
 namespace Phalcon\Queue\Exceptions;
 
-class DatabaseException extends QueueException
+class DatabaseException extends ConnectorException
 {
     //
 }

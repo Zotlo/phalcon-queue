@@ -4,7 +4,7 @@ namespace Phalcon\Queue\Exceptions;
 
 use Phalcon\Queue\Jobs\Job;
 
-abstract class JobException extends RuntimeException
+class JobException extends RuntimeException
 {
     public function __construct(string $message = "", int $code = 0, ?\Throwable $previous = null)
     {

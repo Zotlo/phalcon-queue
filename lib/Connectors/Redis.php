@@ -4,7 +4,6 @@ namespace Phalcon\Queue\Connectors;
 
 use Phalcon\Di\Di;
 use Phalcon\Queue\Exceptions\RedisException;
-use Phalcon\Queue\Exceptions\RedisSelectDatabaseException;
 use Phalcon\Queue\Jobs\Job;
 use Phalcon\Queue\Jobs\Status;
 use Redis as RedisClient;
@@ -32,7 +31,7 @@ class Redis implements ConnectorInterface
     private RedisClient $redis;
 
     /**
-     * @throws RedisSelectDatabaseException
+     * @throws RedisException
      */
     public function __construct()
     {
@@ -46,7 +45,7 @@ class Redis implements ConnectorInterface
 
             $this->redis->select($this->dbIndex);
         } catch (Throwable $exception) {
-            throw new RedisSelectDatabaseException($exception->getMessage());
+            throw new RedisException($exception->getMessage());
         }
     }
 

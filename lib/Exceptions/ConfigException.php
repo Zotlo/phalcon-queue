@@ -2,7 +2,7 @@
 
 namespace Phalcon\Queue\Exceptions;
 
-class JobDispatchException extends JobException
+class ConfigException extends QueueException
 {
     //
 }

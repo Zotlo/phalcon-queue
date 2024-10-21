@@ -3,9 +3,9 @@
 namespace Phalcon\Queue\Tasks;
 
 use Phalcon\Queue\Connector;
+use Phalcon\Queue\Exceptions\ConfigException;
 use Phalcon\Queue\Exceptions\ConnectorException;
 use Phalcon\Queue\Exceptions\QueueException;
-use Phalcon\Queue\Exceptions\RuntimeException;
 use Phalcon\Queue\Jobs\Job;
 use Phalcon\Queue\Signal;
 
@@ -38,7 +38,7 @@ class WorkerTask extends Task
      * @param string $queue
      * @return void
      * @throws ConnectorException
-     * @throws RuntimeException
+     * @throws ConfigException
      */
     public function runAction(string $queue): void
     {

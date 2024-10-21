@@ -105,6 +105,7 @@ $di->setShared('config', function () {
             'supervisors' => [
                 [
                     'queue'           => 'default', # Queue Name
+                    'balance'         => 'auto',    # Balance Strategy
                     'processes'       => 5,         # Maximum Process
                     'tries'           => 0,         # Job Maximum Tries
                     'timeout'         => 90,        # Job Timeout
@@ -114,6 +115,7 @@ $di->setShared('config', function () {
                 ],
                 [
                     'queue'           => 'another-queue',
+                    'balance'         => 'simple',
                     'processes'       => 5,
                     'tries'           => 0,
                     'timeout'         => 90,
@@ -241,7 +243,9 @@ $job = async(function (){
     ...
 });
 
-// Other your code
+// Your app codes
+
+// Waits until the job succeeds or fails.
 $status = await($job); // return ['failed','completed']
 
 // Waits until the job succeeds or fails. If you want to manage all processes, send the 'manageable' value as 'true'.

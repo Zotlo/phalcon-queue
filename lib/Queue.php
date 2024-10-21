@@ -4,7 +4,7 @@ namespace Phalcon\Queue;
 
 use Phalcon\Config\Config;
 use Phalcon\Di\Di;
-use Phalcon\Queue\{Exceptions\QueueException, Processes\Process};
+use Phalcon\Queue\{Exceptions\ConfigException, Exceptions\QueueException, Processes\Process};
 use Phalcon\Logger\ {
     Adapter\Stream as LoggerStreamAdapter,
     Formatter\Line as LoggerLine,
@@ -28,6 +28,13 @@ final class Queue
      * @var string $queue
      */
     public string $queue = 'default';
+
+    /**
+     * Queue Balance Strategy
+     *
+     * @var string $balance
+     */
+    public string $balance = 'auto';
 
     /**
      * Worker Process Phalcon Task Name
@@ -204,6 +211,7 @@ final class Queue
 
     /**
      * @return void
+     * @throws QueueException
      */
     private function startMasterProcess(): void
     {
@@ -218,6 +226,7 @@ final class Queue
      * Scale workers
      *
      * @return void
+     * @throws QueueException
      */
     private function scale(): void
     {
@@ -234,6 +243,7 @@ final class Queue
             }
         }
 
+        // If stop signal is sent, close processes.
         if ($this->stopSignalStatus) {
             $this->scaleDown();
 
@@ -244,8 +254,44 @@ final class Queue
             return;
         }
 
+        // Balance Strategy
+        switch ($this->balance) {
+            case 'auto':
+                $this->balanceAuto($pendingJobs, $pendingJobCount);
+                break;
+            case 'simple':
+                $this->balanceSimple($pendingJobs, $pendingJobCount);
+                break;
+            default:
+                // If there is no balance strategy, close all processes and stop the system.
+                if (empty($this->processes)) {
+                    throw new ConfigException('Queue balance strategy is not defined.');
+                }
+                $this->scaleDown();
+        }
+    }
+
+    private function balanceAuto($pendingJobs, $pendingJobCount): void
+    {
         if (!empty($pendingJobs)) {
             if ($this->processingCount < $this->processMax && $this->processingCount <= $pendingJobCount) {
+                $this->scaleUp($pendingJobCount);
+            } else {
+                if ($this->processingCount > $pendingJobCount) {
+                    $this->scaleDown();
+                }
+            }
+        } else {
+            if ($this->processingCount > $pendingJobCount) {
+                $this->scaleDown();
+            }
+        }
+    }
+
+    private function balanceSimple($pendingJobs, $pendingJobCount): void
+    {
+        if (!empty($pendingJobs)) {
+            if ($this->processingCount < $this->processMax && $pendingJobCount >= $this->balanceMaxShift) {
                 $this->scaleUp($pendingJobCount);
             } else {
                 if ($this->processingCount > $pendingJobCount) {
@@ -358,6 +404,10 @@ final class Queue
 
         foreach ($configs as $config) {
             if ($config->queue === $this->queue) {
+                if (isset($config->balance)) {
+                    $this->balance = $config->balance;
+                }
+
                 if (isset($config->processes)) {
                     $this->processMax = (int)$config->processes;
                 }

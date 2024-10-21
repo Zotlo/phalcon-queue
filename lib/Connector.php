@@ -8,6 +8,7 @@ use Phalcon\Queue\Connectors\ConnectorInterface;
 use Phalcon\Queue\Connectors\MySQL;
 use Phalcon\Queue\Connectors\Redis;
 use Phalcon\Queue\Connectors\SQLite;
+use Phalcon\Queue\Exceptions\ConfigException;
 use Phalcon\Queue\Exceptions\ConnectorException;
 
 final class Connector
@@ -35,7 +36,7 @@ final class Connector
 
     /**
      * @throws ConnectorException
-     * @throws Exceptions\RuntimeException
+     * @throws ConfigException
      */
     public function __construct(DependencyInjector $di)
     {

@@ -4,14 +4,14 @@ namespace Phalcon\Queue;
 
 use Phalcon\Config\Config;
 use Phalcon\Di\Di as DependencyInjector;
-use Phalcon\Queue\Exceptions\RuntimeException;
+use Phalcon\Queue\Exceptions\ConfigException;
 
 class Utils
 {
     /**
      * @param DependencyInjector $di
      * @return Config
-     * @throws RuntimeException
+     * @throws ConfigException
      */
     public static function discoveryApplicationConfig(DependencyInjector $di): Config
     {
@@ -28,15 +28,15 @@ class Utils
         }
 
         if (!isset($config)) {
-            throw new RuntimeException('Phalcon application configuration is missing');
+            throw new ConfigException('Phalcon application configuration is missing');
         }
 
         if (!isset($config->queues)) {
-            throw new RuntimeException('Phalcon queue configuration is missing');
+            throw new ConfigException('Phalcon queue configuration is missing');
         }
 
         if (!isset($config->queues->supervisors)) {
-            throw new RuntimeException('Phalcon queue supervisor configuration is missing');
+            throw new ConfigException('Phalcon queue supervisor configuration is missing');
         }
 
         return $config;
