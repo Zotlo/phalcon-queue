@@ -2,8 +2,7 @@
 
 namespace Phalcon\Queue\Jobs;
 
-use Opis\Closure\SecurityException;
-use Opis\Closure\SerializableClosure as Closure;
+use Laravel\SerializableClosure\SerializableClosure as Closure;
 
 class AsyncJob extends Job
 {
@@ -20,12 +19,11 @@ class AsyncJob extends Job
 
     /**
      * @return void
-     * @throws SecurityException
      */
     public function handle(): void
     {
-        $closureClass = new Closure(fn() => null);
-        $closureClass->unserialize($this->closureString);
-        $closureClass->getClosure()($this->di);
+        /** @var Closure $closure */
+        $closure = unserialize($this->closureString);
+        $closure->getClosure()($this->di);
     }
 }

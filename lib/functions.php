@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-use Opis\Closure\SerializableClosure as Closure;
+use Laravel\SerializableClosure\SerializableClosure as Closure;
 use Phalcon\Di\Di as DependencyInjector;
 use Phalcon\Queue\Connector;
 use Phalcon\Queue\Dispatcher;
@@ -15,7 +15,7 @@ if (!function_exists('async')) {
      */
     function async(callable $callable): Job
     {
-        $job = new AsyncJob((new Closure($callable))->serialize());
+        $job = new AsyncJob(serialize(new Closure($callable)));
         dispatch($job);
         return $job;
     }
