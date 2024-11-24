@@ -332,6 +332,9 @@ final class Queue
 
         for ($i = 1; $i <= $balanceShift; $i++) {
             if ($this->processingCount <= $this->processMax) {
+                if (str_ends_with($this->workerTaskName, 'Task')) {
+                    $this->workerTaskName = substr($this->workerTaskName, 0, -4);
+                }
                 $process = new Process($this->queue, $this->workerTaskName);
 
                 $this->processes[] = $process;
