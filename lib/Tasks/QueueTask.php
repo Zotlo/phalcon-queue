@@ -3,11 +3,11 @@
 namespace Phalcon\Queue\Tasks;
 
 use Phalcon\Config\Config;
-use Phalcon\Queue\Socket;
-use Phalcon\Queue\Utils;
-use Phalcon\Queue\Exceptions\QueueException;
 use Phalcon\Queue\Connector;
+use Phalcon\Queue\Exceptions\QueueException;
 use Phalcon\Queue\Queue;
+use Phalcon\Queue\Socket\Socket;
+use Phalcon\Queue\Utils;
 
 class QueueTask extends Task
 {

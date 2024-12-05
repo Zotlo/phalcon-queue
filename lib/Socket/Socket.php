@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Phalcon\Queue;
+namespace Phalcon\Queue\Socket;
 
 use Phalcon\Queue\Exceptions\RuntimeException;
 
@@ -155,19 +155,14 @@ class Socket
     /**
      * Send socket message.
      *
-     * @param string $message
+     * @param Message $message
      * @return bool
+     * @throws RuntimeException
      */
-    public function send(string $message): bool
+    public function send(Message $message): bool
     {
         if ($this->isServer) {
-            $success = true;
-            foreach ($this->clients as $client) {
-                if (@fwrite($client, $message . PHP_EOL) === false) {
-                    $success = false;
-                }
-            }
-            return $success;
+            return $this->broadcast($message, true);
         }
 
         return @fwrite($this->socket, $message . PHP_EOL) !== false;
@@ -176,29 +171,35 @@ class Socket
     /**
      * Receive socket server message.
      *
-     * @return string|null
+     * @return Message|null
      * @throws RuntimeException
      */
-    public function receive(): ?string
+    public function receive(): ?Message
     {
         if ($this->isServer) {
             throw new RuntimeException("This method only use client process");
         }
 
         $message = @fread($this->socket, $this->bufferSize);
-        return $message === false ? null : trim($message);
+
+        if (empty($message)) {
+            return null;
+        }
+
+        return new Message($message);
     }
 
     /**
      * Send message all clients.
      *
-     * @param string $message
+     * @param Message $message
+     * @param bool $bypassThrow
      * @return bool
      * @throws RuntimeException
      */
-    public function broadcast(string $message): bool
+    public function broadcast(Message $message, bool $bypassThrow = false): bool
     {
-        if (!$this->isServer) {
+        if (!$bypassThrow && !$this->isServer) {
             throw new RuntimeException("This method only use master process");
         }
 

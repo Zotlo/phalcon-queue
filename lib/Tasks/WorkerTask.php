@@ -5,18 +5,21 @@ namespace Phalcon\Queue\Tasks;
 use Phalcon\Queue\Connector;
 use Phalcon\Queue\Exceptions\ConfigException;
 use Phalcon\Queue\Exceptions\ConnectorException;
+use Phalcon\Queue\Exceptions\DatabaseException;
 use Phalcon\Queue\Exceptions\QueueException;
 use Phalcon\Queue\Exceptions\RuntimeException;
 use Phalcon\Queue\Jobs\Job;
 use Phalcon\Queue\Process;
 use Phalcon\Queue\Signal;
-use Phalcon\Queue\Socket;
+use Phalcon\Queue\Socket\Message;
+use Phalcon\Queue\Socket\Socket;
 
 class WorkerTask extends Task
 {
     use Signal;
 
     // Worker Settings
+    private false|object $job;
     private string $queue;
     private int $each = 0;
 
@@ -106,7 +109,7 @@ class WorkerTask extends Task
      */
     private function process(): void
     {
-        $job = $this->connector->adapter->getPendingJob($this->queue);
+        $this->job = $this->connector->adapter->getPendingJob($this->queue);
         $config = $this->di->getShared('config');
 
         foreach ($config->queues->supervisors as $supervisor) {
@@ -121,7 +124,7 @@ class WorkerTask extends Task
             return;
         }
 
-        if (empty($job)) {
+        if (empty($this->job)) {
             $this->sleep();
 
             return;
@@ -129,11 +132,11 @@ class WorkerTask extends Task
 
         $this->running();
 
-        $lockKey = 'JOB_LOCK_' . $job->id;
+        $lockKey = 'JOB_LOCK_' . $this->job->id;
         if ($this->connector->adapter->lock($lockKey)) {
-            if ($this->connector->adapter->markAsProcessing($job)) {
+            if ($this->connector->adapter->markAsProcessing($this->job)) {
                 /** @var Job $jobClass */
-                $jobClass = unserialize($job->payload);
+                $jobClass = unserialize($this->job->payload);
 
                 if ($jobClass->getTimeout() === 0) {
                     if (!empty($supervisor->timeout)) {
@@ -145,9 +148,9 @@ class WorkerTask extends Task
                     $jobClass->startJobTimer();
                     $jobClass->handle();
 
-                    $this->connector->adapter->markAsCompleted($job);
+                    $this->connector->adapter->markAsCompleted($this->job);
                 } catch (\Throwable $exception) {
-                    $this->connector->adapter->markAsFailed($job, $exception);
+                    $this->connector->adapter->markAsFailed($this->job, $exception);
                 }
             }
 
@@ -162,10 +165,16 @@ class WorkerTask extends Task
      */
     private function running(): void
     {
-        if ($this->isIdle) {
-            $this->isIdle = false;
+        $this->isIdle = false;
 
-            $this->socket->send($this->pid() . '@' . Process::STATUS_RUNNING);
+        try {
+            $this->socket->send(new Message(Message::WORKER, Message::SERVER, Process::STATUS_RUNNING));
+        } catch (\Throwable $exception) {
+            try {
+                $this->connector->adapter->markAsFailed($this->job, $exception);
+            } catch (DatabaseException $e) {
+                //
+            }
         }
     }
 
@@ -179,7 +188,11 @@ class WorkerTask extends Task
         if (!$this->isIdle) {
             $this->isIdle = true;
 
-            $this->socket->send($this->pid() . '@' . Process::STATUS_IDLE);
+            try {
+                $this->socket->send(new Message(Message::WORKER, Message::SERVER, Process::STATUS_IDLE));
+            } catch (\Throwable $exception) {
+                //
+            }
         }
     }
 

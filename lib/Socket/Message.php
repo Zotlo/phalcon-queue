@@ -1,0 +1,90 @@
+<?php
+
+namespace Phalcon\Queue\Socket;
+
+class Message
+{
+    // Message owner and receivers.
+    public const SERVER = 'SERVER';
+    public const WORKER = 'WORKER';
+    public const CLI = 'CLI';
+
+    private string $from;
+    private string $to;
+    private string $message;
+    private int $pid;
+
+    public function __construct(string $from, string $to = null, string $message = null)
+    {
+        $this->from = $from;
+        $this->pid = getmypid();
+
+        // Parse receive socket message.
+        if (is_null($to) || is_null($message)) {
+            $this->parse($this->from);
+        } else {
+            $this->to = $to;
+            $this->message = $message;
+        }
+    }
+
+    /**
+     * Parse receive socket message.
+     * Example: WORKER>SERVER|00000#RUNNING
+     *
+     * @param string $message
+     * @return void
+     */
+    private function parse(string $message): void
+    {
+        [$fromTo, $pidMessage] = explode('|', $message);
+        [$from, $to] = explode('>', $fromTo);
+        [$pid, $message] = explode('#', $pidMessage);
+
+        $this->from = $from;
+        $this->to = $to;
+        $this->message = $message;
+        $this->pid = (int)$pid;
+    }
+
+    /**
+     * @return int
+     */
+    public function getPid(): int
+    {
+        return $this->pid;
+    }
+
+    /**
+     * @return string
+     */
+    public function getFrom(): string
+    {
+        return $this->from;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTo(): string
+    {
+        return $this->to;
+    }
+
+    /**
+     * @return string
+     */
+    public function getMessage(): string
+    {
+        return $this->message;
+    }
+
+    /**
+     * Example: WORKER>SERVER|00000#RUNNING
+     * @return string
+     */
+    public function __toString(): string
+    {
+        return $this->from . '>' . $this->to . '|' . $this->pid . '#' . $this->message;
+    }
+}

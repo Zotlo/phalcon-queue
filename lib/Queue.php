@@ -5,7 +5,12 @@ namespace Phalcon\Queue;
 use Phalcon\Config\Config;
 use Phalcon\Di\Di;
 use Phalcon\Logger\{Adapter\Stream as LoggerStreamAdapter, Formatter\Line as LoggerLine, Logger,};
-use Phalcon\Queue\{Exceptions\ConfigException, Exceptions\QueueException, Exceptions\RuntimeException};
+use Phalcon\Queue\{Exceptions\ConfigException,
+    Exceptions\QueueException,
+    Exceptions\RuntimeException,
+    Socket\Message,
+    Socket\Socket
+};
 
 final class Queue
 {
@@ -247,10 +252,20 @@ final class Queue
     {
         try {
             $this->socket->check(function (string $message, mixed $client) {
-                [$pid, $status] = explode('@', $message);
+                $message = new Message($message);
+                echo "SOCKET MESSAGE RECEIVED: " . $message . PHP_EOL;
 
-                if (isset($this->processes[(int)$pid])) {
-                    $this->processes[(int)$pid]->setIdle(trim($status) === Process::STATUS_IDLE);
+                if ($message->getTo() === Message::SERVER) {
+
+                    if ($message->getFrom() === Message::WORKER) {
+                        if (isset($this->processes[$message->getPid()])) {
+                            $this->processes[$message->getPid()]->setIdle($message->getMessage() === Process::STATUS_IDLE);
+                        }
+                    }
+
+                    if ($message->getFrom() === Message::CLI) {
+                        //
+                    }
                 }
             });
         } catch (RuntimeException $e) {
