@@ -4,6 +4,9 @@ namespace Phalcon\Queue\Socket;
 
 class Message
 {
+    // Socket Message Format
+    private const MESSAGE_FORMAT = '%s>%s|%s#%s';
+
     // Message owner and receivers.
     public const SERVER = 'SERVER';
     public const WORKER = 'WORKER';
@@ -85,6 +88,6 @@ class Message
      */
     public function __toString(): string
     {
-        return $this->from . '>' . $this->to . '|' . $this->pid . '#' . $this->message;
+        return sprintf(self::MESSAGE_FORMAT, $this->from, $this->to, $this->pid, $this->message);
     }
 }
