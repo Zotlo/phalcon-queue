@@ -1,6 +1,6 @@
 <?php
 
-namespace Phalcon\Queue\Processes;
+namespace Phalcon\Queue;
 
 use Symfony\Component\Process\Process as CLIProcess;
 
@@ -9,7 +9,7 @@ use Symfony\Component\Process\Process as CLIProcess;
  */
 class Process
 {
-    public const STATUS_WORKING = "WORKING";
+    public const STATUS_RUNNING = "RUNNING";
     public const STATUS_IDLE = "IDLE";
 
     /** @var CLIProcess $process */
@@ -58,17 +58,11 @@ class Process
      */
     public function start(): void
     {
-        $this->process->start(function ($type, $buffer) {
-            switch (trim($buffer)) {
-                case self::STATUS_WORKING:
-                    $this->isIdle = false;
-                    break;
-                case self::STATUS_IDLE:
-                    $this->isIdle = true;
-                    break;
-                default:
-            }
-        });
+        $this->process->setOptions([
+            'blocking_pipes' => false
+        ]);
+        $this->process->disableOutput();
+        $this->process->start();
     }
 
     /**
@@ -77,5 +71,14 @@ class Process
     public function isIdle(): bool
     {
         return $this->isIdle;
+    }
+
+    /**
+     * @param bool $idle
+     * @return void
+     */
+    public function setIdle(bool $idle): void
+    {
+        $this->isIdle = $idle;
     }
 }

@@ -3,6 +3,7 @@
 namespace Phalcon\Queue\Tasks;
 
 use Phalcon\Config\Config;
+use Phalcon\Queue\Socket;
 use Phalcon\Queue\Utils;
 use Phalcon\Queue\Exceptions\QueueException;
 use Phalcon\Queue\Connector;
@@ -35,6 +36,7 @@ class QueueTask extends Task
             ->setWorkerTaskName($this->workerTaskName)
             ->setConfig($this->config)
             ->setConnector(new Connector($this->di))
+            ->setSocket(new Socket(true, $queue))
             ->work();
     }
 

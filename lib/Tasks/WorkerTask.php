@@ -6,8 +6,11 @@ use Phalcon\Queue\Connector;
 use Phalcon\Queue\Exceptions\ConfigException;
 use Phalcon\Queue\Exceptions\ConnectorException;
 use Phalcon\Queue\Exceptions\QueueException;
+use Phalcon\Queue\Exceptions\RuntimeException;
 use Phalcon\Queue\Jobs\Job;
+use Phalcon\Queue\Process;
 use Phalcon\Queue\Signal;
+use Phalcon\Queue\Socket;
 
 class WorkerTask extends Task
 {
@@ -21,10 +24,6 @@ class WorkerTask extends Task
     private bool $isIdle = false;
     private bool $shouldStop = false;
 
-    // Signal Status
-    private const STATUS_RUNNING = "RUNNING";
-    private const STATUS_IDLE = "IDLE";
-
     /**
      * Queue Connector
      *
@@ -33,18 +32,27 @@ class WorkerTask extends Task
     private Connector $connector;
 
     /**
+     * Socket Client
+     *
+     * @var Socket $socket
+     */
+    private Socket $socket;
+
+    /**
      * Handle Queue Worker Process
      *
      * @param string $queue
      * @return void
      * @throws ConnectorException
      * @throws ConfigException
+     * @throws RuntimeException
      */
     public function runAction(string $queue): void
     {
         $this->queue = $queue;
         $this->configureSignal();
         $this->connector = new Connector($this->di);
+        $this->socket = new Socket(false, $queue);
 
         do {
             if ($this->shouldStop) {
@@ -146,9 +154,11 @@ class WorkerTask extends Task
      */
     private function running(): void
     {
-        $this->isIdle = false;
+        if ($this->isIdle) {
+            $this->isIdle = false;
 
-        echo self::STATUS_RUNNING . PHP_EOL;
+            $this->socket->send(getmypid() . '@' . Process::STATUS_RUNNING);
+        }
     }
 
     /**
@@ -158,9 +168,11 @@ class WorkerTask extends Task
      */
     private function idle(): void
     {
-        $this->isIdle = true;
+        if (!$this->isIdle) {
+            $this->isIdle = true;
 
-        echo self::STATUS_IDLE . PHP_EOL;
+            $this->socket->send(getmypid() . '@' . Process::STATUS_IDLE);
+        }
     }
 
     /**

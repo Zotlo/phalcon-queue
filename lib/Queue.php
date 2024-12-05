@@ -4,12 +4,8 @@ namespace Phalcon\Queue;
 
 use Phalcon\Config\Config;
 use Phalcon\Di\Di;
-use Phalcon\Queue\{Exceptions\ConfigException, Exceptions\QueueException, Processes\Process};
-use Phalcon\Logger\ {
-    Adapter\Stream as LoggerStreamAdapter,
-    Formatter\Line as LoggerLine,
-    Logger,
-};
+use Phalcon\Logger\{Adapter\Stream as LoggerStreamAdapter, Formatter\Line as LoggerLine, Logger,};
+use Phalcon\Queue\{Exceptions\ConfigException, Exceptions\QueueException, Exceptions\RuntimeException};
 
 final class Queue
 {
@@ -121,6 +117,13 @@ final class Queue
     private Connector $connector;
 
     /**
+     * Socket Client
+     *
+     * @var Socket $socket
+     */
+    private Socket $socket;
+
+    /**
      * Phalcon Application Logger
      *
      * @var Logger $logger
@@ -156,6 +159,17 @@ final class Queue
     public function setConnector(Connector $connector): self
     {
         $this->connector = $connector;
+
+        return $this;
+    }
+
+    /**
+     * @param Socket $socket
+     * @return $this
+     */
+    public function setSocket(Socket $socket): self
+    {
+        $this->socket = $socket;
 
         return $this;
     }
@@ -216,10 +230,32 @@ final class Queue
     private function startMasterProcess(): void
     {
         do {
+            $this->checkWorkerMessages();
+
             $this->scale();
 
             sleep($this->balanceCoolDown);
         } while ($this->isRunning);
+    }
+
+    /**
+     * Checks messages from worker processes and updates their status if necessary.
+     *
+     * @return void
+     */
+    private function checkWorkerMessages(): void
+    {
+        try {
+            $this->socket->check(function (string $message, mixed $client) {
+                [$pid, $status] = explode('@', $message);
+
+                if (isset($this->processes[(int)$pid])) {
+                    $this->processes[(int)$pid]->setIdle(trim($status) === Process::STATUS_IDLE);
+                }
+            });
+        } catch (RuntimeException $e) {
+            //
+        }
     }
 
     /**
@@ -271,7 +307,15 @@ final class Queue
         }
     }
 
-    private function balanceAuto($pendingJobs, $pendingJobCount): void
+    /**
+     * Adjusts the processing resources automatically based on the number of pending jobs.
+     * The aim of this strategy is to consume pending tasks in a balanced manner.
+     *
+     * @param array $pendingJobs The collection of pending jobs that need processing.
+     * @param int $pendingJobCount The count of pending jobs to be processed.
+     * @return void
+     */
+    private function balanceAuto(array $pendingJobs, int $pendingJobCount): void
     {
         if (!empty($pendingJobs)) {
             if ($this->processingCount < $this->processMax && $this->processingCount <= $pendingJobCount) {
@@ -288,7 +332,15 @@ final class Queue
         }
     }
 
-    private function balanceSimple($pendingJobs, $pendingJobCount): void
+    /**
+     * Balances the system load by scaling up or down based on the number of pending jobs.
+     * The goal of this strategy is to quickly exhaust pending work.
+     *
+     * @param array $pendingJobs An array of jobs that are waiting to be processed.
+     * @param int $pendingJobCount The count of pending jobs to be used for balancing.
+     * @return void
+     */
+    private function balanceSimple(array $pendingJobs, int $pendingJobCount): void
     {
         if (!empty($pendingJobs)) {
             if ($this->processingCount < $this->processMax && $pendingJobCount >= $this->balanceMaxShift) {
@@ -334,9 +386,7 @@ final class Queue
             if ($this->processingCount <= $this->processMax) {
                 $process = new Process($this->queue, $this->workerTaskName);
 
-                $this->processes[] = $process;
                 $this->processingCount = count($this->processes);
-
                 $process->start();
                 if ($this->debug) {
                     try {
@@ -345,6 +395,7 @@ final class Queue
                         //
                     }
                 }
+                $this->processes[$process->getPid()] = $process;
 
                 continue;
             }
@@ -354,7 +405,7 @@ final class Queue
     }
 
     /**
-     * Stop idle process
+     * Stop idle & zombie process.
      *
      * @return void
      */
@@ -368,11 +419,23 @@ final class Queue
             }
         }
 
+        $stopBalanceMaxShift = $this->balanceMaxShift;
         foreach ($this->processes as $processKey => $process) {
+            if ($stopBalanceMaxShift <= 0) {
+                break;
+            }
+
             if (!$process->isRunning() || $process->isIdle()) {
                 if ($this->debug) {
                     try {
-                        $this->logger->debug('IDLE PROCESS STOPPING PID: ' . $process->getPid());
+                        if (is_null($process->getPid())) {
+                            $this->logger->debug('IDLE ZOMBIE PROCESS FORCE STOPPING PID: ' . $processKey . ' EXTRA: ' . json_encode([
+                                    'code'     => $process->getExitCode(),
+                                    'codeText' => $process->getExitCodeText()
+                                ]));
+                        } else {
+                            $this->logger->debug('IDLE ACTIVE PROCESS GRACEFUL STOPPING PID: ' . $processKey);
+                        }
                     } catch (\Throwable $exception) {
                         //
                     }
@@ -380,6 +443,9 @@ final class Queue
 
                 $process->stop(0, SIGKILL);
                 unset($this->processes[$processKey]);
+                if (!$this->stopSignalStatus) {
+                    $stopBalanceMaxShift--;
+                }
             } else {
                 // Send Stop Signals Child Process
                 if ($this->stopSignalStatus) {
