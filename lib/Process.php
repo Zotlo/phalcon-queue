@@ -9,6 +9,7 @@ use Symfony\Component\Process\Process as CLIProcess;
  */
 class Process
 {
+    // Process statuses.
     public const STATUS_RUNNING = "RUNNING";
     public const STATUS_IDLE = "IDLE";
 
@@ -49,7 +50,8 @@ class Process
      */
     private function initializeShellCommand(string $queue, string $workerTaskName): void
     {
-        $command = PHP_BINARY . ' ' . getcwd() . '/' . $_SERVER['SCRIPT_NAME'] . ' ' . str_replace('Task', '', $workerTaskName) . ' run ' . $queue;
+        $scriptFileName = explode('/', $_SERVER['SCRIPT_NAME']);
+        $command = PHP_BINARY . ' ' . getcwd() . '/' . $scriptFileName[array_key_last($scriptFileName)] . ' ' . str_replace('Task', '', $workerTaskName) . ' run ' . $queue;
         $this->process = CLIProcess::fromShellCommandline($command);
     }
 

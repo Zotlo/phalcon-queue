@@ -120,7 +120,7 @@ class Socket
         $read = array_merge([$this->socket], $this->clients);
         $write = $except = null;
 
-        while (stream_select($read, $write, $except, 0, 0) > 0) { // timeout 0 yaparak tüm bekleyen mesajları al
+        while (stream_select($read, $write, $except, 0, 0) > 0) {
             if (in_array($this->socket, $read)) {
                 $client = @stream_socket_accept($this->socket);
                 if ($client) {

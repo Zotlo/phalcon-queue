@@ -91,6 +91,18 @@ class WorkerTask extends Task
     }
 
     /**
+     * @return int
+     */
+    private function pid(): int
+    {
+        $pid = posix_getppid();
+        if ($pid === 1) {
+            $pid = getmypid();
+        }
+        return $pid;
+    }
+
+    /**
      * Execute Job
      *
      * @return void
@@ -157,7 +169,7 @@ class WorkerTask extends Task
         if ($this->isIdle) {
             $this->isIdle = false;
 
-            $this->socket->send(getmypid() . '@' . Process::STATUS_RUNNING);
+            $this->socket->send($this->pid() . '@' . Process::STATUS_RUNNING);
         }
     }
 
@@ -171,7 +183,7 @@ class WorkerTask extends Task
         if (!$this->isIdle) {
             $this->isIdle = true;
 
-            $this->socket->send(getmypid() . '@' . Process::STATUS_IDLE);
+            $this->socket->send($this->pid() . '@' . Process::STATUS_IDLE);
         }
     }
 
