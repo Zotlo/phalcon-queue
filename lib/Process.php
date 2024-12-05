@@ -51,7 +51,7 @@ class Process
     private function initializeShellCommand(string $queue, string $workerTaskName): void
     {
         $scriptPath = realpath($_SERVER['SCRIPT_FILENAME']);
-        $command = PHP_BINARY . ' ' . $scriptPath . ' ' . str_replace('Task', '', $workerTaskName) . ' run ' . $queue;
+        $command = PHP_BINARY . ' ' . $scriptPath . ' ' . str_replace('Task', '', $workerTaskName) . ' run ' . $queue . ' ' . getmypid();
         $this->process = CLIProcess::fromShellCommandline($command);
     }
 
