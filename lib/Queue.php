@@ -253,20 +253,22 @@ final class Queue
         try {
             $this->socket->check(function (string $message, mixed $client) {
                 $message = new Message($message);
-                echo "SOCKET MESSAGE RECEIVED: " . $message . PHP_EOL;
 
                 if ($message->getTo() === Message::SERVER) {
 
+                    // Worker Messages
                     if ($message->getFrom() === Message::WORKER) {
                         if (isset($this->processes[$message->getPid()])) {
                             $this->processes[$message->getPid()]->setIdle($message->getMessage() === Process::STATUS_IDLE);
                         }
                     }
 
+                    // CLI Messages
                     if ($message->getFrom() === Message::CLI) {
                         //
                     }
                 }
+
             });
         } catch (RuntimeException $e) {
             //
