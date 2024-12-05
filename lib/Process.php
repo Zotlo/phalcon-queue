@@ -60,9 +60,6 @@ class Process
      */
     public function start(): void
     {
-        $this->process->setOptions([
-            'blocking_pipes' => false
-        ]);
         $this->process->disableOutput();
         $this->process->start();
     }
