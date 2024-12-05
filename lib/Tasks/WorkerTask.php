@@ -16,9 +16,6 @@ class WorkerTask extends Task
 {
     use Signal;
 
-    // Master Process Pid
-    private int $masterProcessPid;
-
     // Worker Settings
     private string $queue;
     private int $each = 0;
@@ -45,15 +42,13 @@ class WorkerTask extends Task
      * Handle Queue Worker Process
      *
      * @param string $queue
-     * @param int $masterProcessPid
      * @return void
      * @throws ConnectorException
      * @throws ConfigException
      * @throws RuntimeException
      */
-    public function runAction(string $queue, int $masterProcessPid): void
+    public function runAction(string $queue): void
     {
-        $this->masterProcessPid = $masterProcessPid;
         $this->queue = $queue;
         $this->configureSignal();
         $this->connector = new Connector($this->di);
@@ -100,11 +95,7 @@ class WorkerTask extends Task
      */
     private function pid(): int
     {
-        $pid = posix_getppid();
-        if ($pid === 1 || $pid === $this->masterProcessPid) {
-            $pid = getmypid();
-        }
-        return $pid;
+        return getmypid();
     }
 
     /**
