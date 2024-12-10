@@ -36,7 +36,7 @@ class QueueTask extends Task
             ->setWorkerTaskName($this->workerTaskName)
             ->setConfig($this->config)
             ->setConnector(new Connector($this->di))
-            ->setSocket(new Socket(true, $queue))
+            ->setSocket(new Socket(true, false, $queue))
             ->work();
     }
 

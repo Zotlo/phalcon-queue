@@ -44,14 +44,27 @@ class Socket
      * Socket Constructor
      *
      * @param bool $isServer
-     * @param string $queue
-     * @param string|null $socketPath
+     * @param bool $isChannel
+     * @param string $identifier
      * @throws RuntimeException
      */
-    public function __construct(bool $isServer = false, string $queue = 'default', string $socketPath = null)
+    public function __construct(bool $isServer = false, bool $isChannel = false, string $identifier = 'default')
     {
         $this->isServer = $isServer;
-        $this->socketPath = $socketPath ?? sys_get_temp_dir() . '/phalcon_queue_socket_' . $queue . '.sock';
+
+        // Path settings.
+        $basePath = sys_get_temp_dir() . '/phalcon_queue';
+        if (is_dir($basePath) === false) {
+            mkdir($basePath);
+        }
+
+        // Socket path settings.
+        $this->socketPath = $basePath . '/socket_' . $identifier . '.sock';
+        if ($isChannel) {
+            $this->bufferSize = 128;
+            $this->socketPath = $basePath . '/channel_' . $identifier . '.sock';
+        }
+
         $this->init();
     }
 
@@ -119,6 +132,7 @@ class Socket
         $messageCount = 0;
         $read = array_merge([$this->socket], $this->clients);
         $write = $except = null;
+        $buffers = [];
 
         while (stream_select($read, $write, $except, 0, 0) > 0) {
             if (in_array($this->socket, $read)) {
@@ -126,23 +140,41 @@ class Socket
                 if ($client) {
                     stream_set_blocking($client, false);
                     $this->clients[] = $client;
+                    $buffers[(int)$client] = '';
                 }
                 unset($read[array_search($this->socket, $read)]);
             }
 
             foreach ($read as $client) {
-                $message = @fread($client, $this->bufferSize);
+                $buffer = '';
+                while (true) {
+                    $chunk = @fread($client, $this->bufferSize);
+                    if ($chunk === false || $chunk === '') {
+                        break;
+                    }
+                    $buffer .= $chunk;
+                    if (strlen($chunk) < $this->bufferSize) {
+                        break;
+                    }
+                }
 
-                if ($message === false || $message === '') {
+                if ($buffer === false || ($buffer === '' && feof($client))) {
                     $this->removeClient($client);
+                    unset($buffers[(int)$client]);
                     continue;
                 }
 
-                $lines = array_filter(explode(PHP_EOL, $message));
-                if (!empty($lines)) {
-                    $lastLine = end($lines);
-                    $callback(trim($lastLine), $client);
-                    $messageCount++;
+                if ($buffer !== '') {
+                    $clientId = (int)$client;
+                    $buffers[$clientId] = isset($buffers[$clientId]) ? $buffers[$clientId] . $buffer : $buffer;
+
+                    $lines = array_filter(explode(PHP_EOL, $buffers[$clientId]));
+                    if (!empty($lines)) {
+                        $lastLine = end($lines);
+                        $callback(trim($lastLine), $client);
+                        $messageCount++;
+                        $buffers[$clientId] = '';
+                    }
                 }
             }
 
@@ -250,14 +282,12 @@ class Socket
             foreach ($this->clients as $client) {
                 @fclose($client);
             }
-        }
 
-//        if ($this->socket) {
-//            @fclose($this->socket);
-//        }
-
-        if ($this->isServer && file_exists($this->socketPath)) {
-            @unlink($this->socketPath);
+            if (file_exists($this->socketPath)) {
+                @unlink($this->socketPath);
+            }
+        } else {
+            @fclose($this->socket);
         }
     }
 }

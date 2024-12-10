@@ -55,7 +55,7 @@ class WorkerTask extends Task
         $this->queue = $queue;
         $this->configureSignal();
         $this->connector = new Connector($this->di);
-        $this->socket = new Socket(false, $queue);
+        $this->socket = new Socket(false, false, $queue);
 
         do {
             if ($this->shouldStop) {
