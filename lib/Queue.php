@@ -2,7 +2,6 @@
 
 namespace Phalcon\Queue;
 
-use Phalcon\Config\Adapter\Php;
 use Phalcon\Config\Config;
 use Phalcon\Di\Di;
 use Phalcon\Logger\{Adapter\Stream as LoggerStreamAdapter, Formatter\Line as LoggerLine, Logger,};
