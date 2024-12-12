@@ -12,10 +12,14 @@ class Message
     public const WORKER = 'WORKER';
     public const CLI = 'CLI';
 
+    // Message fields.
     private string $from;
     private string $to;
     private string $message;
     private int $pid;
+
+    // Messages
+    public const M_RESTART_QUEUE = 'RESTART_QUEUE';
 
     public function __construct(string $from, string $to = null, string $message = null)
     {

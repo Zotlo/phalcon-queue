@@ -58,6 +58,7 @@ $console->addCommands(
         (new \Phalcon\Queue\Commands\ExampleCommand())->setDi($di),
         (new \Phalcon\Queue\Commands\ListFailedJobCommand())->setDi($di),
         (new \Phalcon\Queue\Commands\RetryFailedJobCommand())->setDi($di),
+        (new \Phalcon\Queue\Commands\RestartQueueCommand())->setDi($di),
     ]
 );
 

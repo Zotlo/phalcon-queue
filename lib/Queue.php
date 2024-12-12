@@ -2,6 +2,7 @@
 
 namespace Phalcon\Queue;
 
+use Phalcon\Config\Adapter\Php;
 use Phalcon\Config\Config;
 use Phalcon\Di\Di;
 use Phalcon\Logger\{Adapter\Stream as LoggerStreamAdapter, Formatter\Line as LoggerLine, Logger,};
@@ -265,7 +266,24 @@ final class Queue
 
                     // CLI Messages
                     if ($message->getFrom() === Message::CLI) {
-                        //
+                        switch ($message->getMessage()) {
+                            case Message::M_RESTART_QUEUE:
+                                if ($this->debug) {
+                                    try {
+                                        $this->logger->debug(sprintf('RESTARTING QUEUE: %s', $this->queue));
+                                    } catch (\Throwable $exception) {
+                                        //
+                                    }
+                                }
+
+                                if (!empty($this->processes)) {
+                                    foreach ($this->processes as $process) {
+                                        $process->stop(0, SIGTERM);
+                                    }
+                                }
+                                break;
+                            default:
+                        }
                     }
                 }
 

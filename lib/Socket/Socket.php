@@ -44,11 +44,10 @@ class Socket
      * Socket Constructor
      *
      * @param bool $isServer
-     * @param bool $isChannel
      * @param string $identifier
      * @throws RuntimeException
      */
-    public function __construct(bool $isServer = false, bool $isChannel = false, string $identifier = 'default')
+    public function __construct(bool $isServer = false, string $identifier = 'default')
     {
         $this->isServer = $isServer;
 
@@ -60,10 +59,6 @@ class Socket
 
         // Socket path settings.
         $this->socketPath = $basePath . '/socket_' . $identifier . '.sock';
-        if ($isChannel) {
-            $this->bufferSize = 128;
-            $this->socketPath = $basePath . '/channel_' . $identifier . '.sock';
-        }
 
         $this->init();
     }
@@ -251,7 +246,12 @@ class Socket
      */
     public function disconnect(): bool
     {
-        return fclose($this->socket);
+        if (fclose($this->socket)) {
+            $this->socket = null;
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -287,7 +287,9 @@ class Socket
                 @unlink($this->socketPath);
             }
         } else {
-            @fclose($this->socket);
+            if ($this->socket) {
+                @fclose($this->socket);
+            }
         }
     }
 }
