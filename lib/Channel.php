@@ -19,15 +19,25 @@ final class Channel
     }
 
     /**
+     * Create a Channel object.
+     *
+     * @return self
+     */
+    public static function make(): self
+    {
+        return new Channel();
+    }
+
+    /**
      * Creates a specified number of Channel objects and stores them.
      *
      * @param int $size
      * @return array<self>
      */
-    public static function make(int $size): array
+    public static function makes(int $size): array
     {
         for ($i = 0; $i < $size; $i++) {
-            self::$channels[] = new Channel();
+            self::$channels[] = self::make();
         }
 
         return self::$channels;
