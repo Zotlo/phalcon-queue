@@ -9,7 +9,7 @@ use Phalcon\Queue\Tasks\{QueueTask, WorkerTask};
 /**
  * Phalcon 5 Queue Service Provider
  *
- * @version 1.0.0b
+ * @version 1.1.3
  * @author Abdulkadir Polat <abdulkadirpolat@teknasyon.com>
  */
 final class ServiceProvider implements ServiceProviderInterface
