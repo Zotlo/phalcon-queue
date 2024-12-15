@@ -377,7 +377,7 @@ final class Queue
     private function balanceSimple(array $pendingJobs, int $pendingJobCount): void
     {
         if (!empty($pendingJobs)) {
-            if ($this->processingCount < $this->processMax && $pendingJobCount >= $this->balanceMaxShift) {
+            if ($this->processingCount < $this->processMax) {
                 $this->scaleUp($pendingJobCount);
             } else {
                 if ($this->processingCount > $pendingJobCount) {
