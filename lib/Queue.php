@@ -108,6 +108,11 @@ final class Queue
     public bool $stopSignalStatus = false;
 
     /**
+     * @var string $lastLoggerInitializationDate
+     */
+    private string $lastLoggerInitializationDate;
+
+    /**
      * Phalcon Application Config
      *
      * @var Config $config
@@ -234,12 +239,16 @@ final class Queue
      */
     private function startMasterProcess(): void
     {
+        $this->lastLoggerInitializationDate = gmdate('Y-m-d');
+
         do {
             $this->checkWorkerMessages();
 
             $this->scale();
 
             sleep($this->balanceCoolDown);
+
+            $this->configureLogger(true);
         } while ($this->isRunning);
     }
 
@@ -540,10 +549,15 @@ final class Queue
     /**
      * Configure Phalcon Queue Logger
      *
+     * @param bool $restart
      * @return void
      */
-    private function configureLogger(): void
+    private function configureLogger(bool $restart = false): void
     {
+        if ($restart && $this->lastLoggerInitializationDate === gmdate('Y-m-d')) {
+            return;
+        }
+
         $loggerKeys = [
             'log', 'logger', 'monolog'
         ];
@@ -569,7 +583,11 @@ final class Queue
             ]);
 
             try {
-                $this->logger->debug('INITIALIZED PHALCON QUEUE LOGGER');
+                if ($restart) {
+                    $this->logger->debug('RESTARTED PHALCON QUEUE LOGGER');
+                } else {
+                    $this->logger->debug('INITIALIZED PHALCON QUEUE LOGGER');
+                }
             } catch (\Throwable $exception) {
                 //
             }
@@ -581,6 +599,10 @@ final class Queue
             }
 
             $this->logger->setAdapters($configuredAdapters);
+        }
+
+        if ($restart) {
+            $this->lastLoggerInitializationDate = gmdate('Y-m-d');
         }
     }
 }
