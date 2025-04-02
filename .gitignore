@@ -4,3 +4,4 @@ composer.lock
 monitor.log
 cli.php
 insert.php
+config.php
