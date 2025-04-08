@@ -259,7 +259,16 @@ final class Queue
                     // Worker Messages
                     if ($message->getFrom() === Message::WORKER) {
                         if (isset($this->processes[$message->getPid()])) {
-                            $this->processes[$message->getPid()]->setIdle($message->getMessage() === Process::STATUS_IDLE);
+                            switch ($message->getMessage()) {
+                                case Process::STATUS_IDLE:
+                                    $this->processes[$message->getPid()]->setIdle(true);
+                                    break;
+                                case Process::STATUS_RUNNING:
+                                    $this->processes[$message->getPid()]->setIdle(false);
+                                    break;
+                                default:
+                                    //
+                            }
                         }
                     }
 
@@ -281,9 +290,25 @@ final class Queue
                                     }
                                 }
                                 break;
+                            case Message::M_FORCE_STOP_QUEUE:
+                                if ($this->debug) {
+                                    try {
+                                        $this->logger->debug(sprintf('STOPPING QUEUE: %s', $this->queue));
+                                    } catch (\Throwable $exception) {
+                                        //
+                                    }
+                                }
+
+                                if (!empty($this->processes)) {
+                                    foreach ($this->processes as $process) {
+                                        $process->stop(0, SIGKILL);
+                                    }
+                                }
+                                break;
                             default:
                         }
                     }
+
                 }
 
             });

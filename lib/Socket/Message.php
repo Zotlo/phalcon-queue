@@ -20,6 +20,7 @@ class Message
 
     // Messages
     public const M_RESTART_QUEUE = 'RESTART_QUEUE';
+    public const M_FORCE_STOP_QUEUE = 'FORCE_STOP_QUEUE';
 
     public function __construct(string $from, string $to = null, string $message = null)
     {
