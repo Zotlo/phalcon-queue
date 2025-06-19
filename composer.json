@@ -9,6 +9,7 @@
     "ext-redis": "*",
     "ext-pcntl": "*",
     "ext-sysvmsg": "*",
+    "ext-sockets": "*",
     "ext-phalcon": "5.*",
     "symfony/process": "^5.0",
     "symfony/console": "^5.0",

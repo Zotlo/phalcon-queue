@@ -278,7 +278,7 @@ final class Queue
                             case Message::M_RESTART_QUEUE:
                                 if ($this->debug) {
                                     try {
-                                        $this->logger->debug(sprintf('RESTARTING QUEUE: %s', $this->queue));
+                                        $this->logger->info(sprintf('RESTARTING QUEUE: %s', $this->queue));
                                     } catch (\Throwable $exception) {
                                         //
                                     }
@@ -293,7 +293,7 @@ final class Queue
                             case Message::M_FORCE_STOP_QUEUE:
                                 if ($this->debug) {
                                     try {
-                                        $this->logger->debug(sprintf('STOPPING QUEUE: %s', $this->queue));
+                                        $this->logger->info(sprintf('STOPPING QUEUE: %s', $this->queue));
                                     } catch (\Throwable $exception) {
                                         //
                                     }
@@ -331,8 +331,8 @@ final class Queue
 
         if ($this->debug) {
             try {
-                $this->logger->debug('PENDING COUNT: ' . $pendingJobCount);
-                $this->logger->debug('PROCESSING COUNT: ' . $this->processingCount);
+                $this->logger->info('PENDING COUNT: ' . $pendingJobCount);
+                $this->logger->info('PROCESSING COUNT: ' . $this->processingCount);
             } catch (\Throwable $exception) {
                 //
             }
@@ -435,7 +435,7 @@ final class Queue
 
         if ($this->debug) {
             try {
-                $this->logger->debug('SCALING UP SHIFT: ' . $balanceShift);
+                $this->logger->info('SCALING UP SHIFT: ' . $balanceShift);
             } catch (\Throwable $exception) {
                 //
             }
@@ -449,7 +449,7 @@ final class Queue
                 $process->start();
                 if ($this->debug) {
                     try {
-                        $this->logger->debug('PROCESS STARTING PID: ' . $process->getPid());
+                        $this->logger->info('PROCESS STARTING PID: ' . $process->getPid());
                     } catch (\Throwable $e) {
                         //
                     }
@@ -472,7 +472,7 @@ final class Queue
     {
         if ($this->debug) {
             try {
-                $this->logger->debug('SCALING DOWN');
+                $this->logger->info('SCALING DOWN');
             } catch (\Throwable $exception) {
                 //
             }
@@ -488,12 +488,12 @@ final class Queue
                 if ($this->debug) {
                     try {
                         if (is_null($process->getPid())) {
-                            $this->logger->debug('IDLE ZOMBIE PROCESS FORCE STOPPING PID: ' . $processKey . ' EXTRA: ' . json_encode([
+                            $this->logger->info('IDLE ZOMBIE PROCESS FORCE STOPPING PID: ' . $processKey . ' EXTRA: ' . json_encode([
                                     'code'     => $process->getExitCode(),
                                     'codeText' => $process->getExitCodeText()
                                 ]));
                         } else {
-                            $this->logger->debug('IDLE ACTIVE PROCESS GRACEFUL STOPPING PID: ' . $processKey);
+                            $this->logger->info('IDLE ACTIVE PROCESS GRACEFUL STOPPING PID: ' . $processKey);
                         }
                     } catch (\Throwable $exception) {
                         //
@@ -594,7 +594,7 @@ final class Queue
             ]);
 
             try {
-                $this->logger->debug('INITIALIZED PHALCON QUEUE LOGGER');
+                $this->logger->info('INITIALIZED PHALCON QUEUE LOGGER');
             } catch (\Throwable $exception) {
                 //
             }
