@@ -23,7 +23,18 @@
       "./lib/functions.php"
     ]
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Phalcon\\Queue\\Tests\\": "./tests"
+    }
+  },
   "require-dev": {
-    "phalcon/ide-stubs": "^5.8"
+    "phalcon/ide-stubs": "^5.8",
+    "phpunit/phpunit": "^10.5"
+  },
+  "scripts": {
+    "test": "phpunit --testdox",
+    "test:unit": "phpunit --testsuite unit --testdox",
+    "test:integration": "phpunit --testsuite integration --testdox"
   }
 }
