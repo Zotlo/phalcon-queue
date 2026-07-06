@@ -19,6 +19,11 @@ abstract class IntegrationTestCase extends DatabaseTestCase
     protected string $queue;
     protected ?Process $master = null;
 
+    // Supervisor knobs forwarded to the spawned master (override in a test's setUp).
+    protected string $balance = 'auto';
+    protected int $processes = 2;
+    protected int $maxShift = 1;
+
     protected function setUp(): void
     {
         if (!\function_exists('pcntl_signal')) {
@@ -69,8 +74,11 @@ abstract class IntegrationTestCase extends DatabaseTestCase
     protected function startMaster(): Process
     {
         $env = [
-            'PHALCON_QUEUE_TEST_DB'    => $this->dbPath,
-            'PHALCON_QUEUE_TEST_QUEUE' => $this->queue,
+            'PHALCON_QUEUE_TEST_DB'        => $this->dbPath,
+            'PHALCON_QUEUE_TEST_QUEUE'     => $this->queue,
+            'PHALCON_QUEUE_TEST_BALANCE'   => $this->balance,
+            'PHALCON_QUEUE_TEST_PROCESSES' => (string) $this->processes,
+            'PHALCON_QUEUE_TEST_MAXSHIFT'  => (string) $this->maxShift,
         ];
         // Forward an explicit debug override to the master (default is on).
         if (($debug = getenv('PHALCON_QUEUE_TEST_DEBUG')) !== false) {
@@ -113,5 +121,44 @@ abstract class IntegrationTestCase extends DatabaseTestCase
         } while (\microtime(true) < $deadline);
 
         return $condition();
+    }
+
+    /**
+     * Number of live worker processes for this test's queue.
+     */
+    protected function workerCount(): int
+    {
+        @\exec(
+            'pgrep -f ' . \escapeshellarg('console.php QueueWorker run ' . $this->queue) . ' 2>/dev/null',
+            $out
+        );
+        return \count(\array_filter((array) $out));
+    }
+
+    protected function masterLogPath(): string
+    {
+        return \dirname(\realpath(self::CONSOLE), 2) . '/monitor.log';
+    }
+
+    /**
+     * How many distinct worker PIDs the master reported spawning for this
+     * test's queue (parsed from the debug log). 0 if debug logging is off.
+     */
+    protected function spawnedWorkerCount(): int
+    {
+        $log = $this->masterLogPath();
+        if (!\is_file($log)) {
+            return 0;
+        }
+
+        $pids = [];
+        foreach (\file($log, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+            if (\str_contains($line, '[' . $this->queue . ']')
+                && \preg_match('/PROCESS STARTING PID: (\d+)/', $line, $m)) {
+                $pids[$m[1]] = true;
+            }
+        }
+
+        return \count($pids);
     }
 }

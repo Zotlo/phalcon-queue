@@ -31,13 +31,21 @@ vendor/bin/phpunit tests/Integration/QueueWorkerTest.php
   - `DatabaseTestCase.php` — per-test temp SQLite file + freshly migrated tables.
   - `IntegrationTestCase.php` — starts/stops a real master, polls for state, isolates
     each test with a unique queue name (unique socket + rows).
-  - `Jobs/` — `SentinelJob` (writes a marker), `FailingJob` (throws), `TimeoutJob` (sleeps).
+  - `Jobs/` — `SentinelJob` (writes a marker, optional sleep), `FailingJob` (throws),
+    `TimeoutJob` (sleeps past its timeout).
+  - `PurgesChannels.php` — trait that removes the kernel SysV queues a test creates
+    (Channel has no cleanup of its own; see the note below).
 - `Unit/` — deterministic, no subprocesses: `Message`, `Status`, `Job`, `Channel`,
-  `Connector`, `Utils`, `Dispatcher`, `SqliteStorage`, `Socket`.
+  `Connector`, `Utils`, `Dispatcher` (incl. `dispatchBatch()`), `SqliteStorage`,
+  `Socket`, `Await` (await() status resolution), `FailedJobsCommand` (queue:failed /
+  queue:retry), `ControlCommand` (queue:restart / queue:stop config validation).
 - `Integration/` — end-to-end: dispatch→process (`QueueWorkerTest`), `async()`
   (`AsyncTest`), graceful signal shutdown (`SignalTest`), cross-process `Channel`
   IPC (`ChannelIpcTest`), failure recording (`JobFailureTest`), timeout watchdog
-  (`JobTimeoutTest`).
+  (`JobTimeoutTest`), CLI→master control messages (`ControlCommandIntegrationTest`:
+  queue:restart / queue:stop), and balance strategy + worker scaling (`BalancingTest`).
+
+Not covered (need a live server): the **MySQL** and **Redis** adapters.
 
 ## Notes / behaviours pinned by these tests
 
@@ -48,4 +56,17 @@ vendor/bin/phpunit tests/Integration/QueueWorkerTest.php
   returns `UNKNOWN` on a DB error (see `SqliteStorageTest`).
 - `Socket::receive()` reads a single 32-byte frame and does not strip the trailing EOL
   (see `SocketTest`); the master's `check()` path buffers and trims properly.
+- `Channel` never removes its System V message queue, so each one leaks a kernel queue
+  (host limit, e.g. macOS `kern.sysv.msgmni` ≈ 40). Tests clean up via `PurgesChannels`.
+
+## Known library issues these tests document (currently pinned, not fixed)
+
+- `queue:failed` / `queue:retry` branch on the adapter string and only handle
+  `'database'` / `'redis'` — never the `'mysql'` / `'sqlite'` the real `Connector`
+  produces, so they silently no-op on those (`FailedJobsCommandTest`).
+- `RetryFailedJobCommand`'s INSERT omits the required `job_id` column, so even under the
+  `'database'` branch the re-queue fails silently and the job stays in `jobs_failed`.
+- The worker failure path leaves the row in `jobs` (reserved) while copying it to
+  `jobs_failed`, so `getJobStatus()` reports PROCESSING and a non-manageable `await()`
+  on a failed job never returns (`AwaitTest` drives the FAILED branch from DB state).
 ```

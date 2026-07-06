@@ -55,13 +55,4 @@ final class SignalTest extends IntegrationTestCase
             'SIGINT'  => [SIGINT],
         ];
     }
-
-    private function workerCount(): int
-    {
-        @\exec(
-            'pgrep -f ' . \escapeshellarg('console.php QueueWorker run ' . $this->queue) . ' 2>/dev/null',
-            $out
-        );
-        return \count(\array_filter($out));
-    }
 }

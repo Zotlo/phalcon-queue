@@ -33,11 +33,11 @@ final class TestDi
                     'supervisors' => [
                         [
                             'queue'           => $queue,
-                            'balance'         => 'auto',
-                            'processes'       => 2,
+                            'balance'         => getenv('PHALCON_QUEUE_TEST_BALANCE') ?: 'auto',
+                            'processes'       => (int) (getenv('PHALCON_QUEUE_TEST_PROCESSES') ?: 2),
                             'tries'           => 0,
                             'timeout'         => 30,
-                            'balanceMaxShift' => 1,
+                            'balanceMaxShift' => (int) (getenv('PHALCON_QUEUE_TEST_MAXSHIFT') ?: 1),
                             'balanceCooldown' => 1,
                             'debug'           => self::debugEnabled(),
                         ],

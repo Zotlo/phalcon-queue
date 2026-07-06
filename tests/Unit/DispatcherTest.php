@@ -48,6 +48,17 @@ final class DispatcherTest extends DatabaseTestCase
         $this->assertSame(3, $this->countRows('jobs'));
     }
 
+    public function testDispatchBatchGlobalHelperInsertsEveryJob(): void
+    {
+        $dispatcher = dispatchBatch([
+            new SentinelJob('/tmp/a'),
+            new SentinelJob('/tmp/b'),
+        ]);
+        unset($dispatcher);
+
+        $this->assertSame(2, $this->countRows('jobs'));
+    }
+
     public function testAsyncHelperEnqueuesAnAsyncJob(): void
     {
         $ran = async(function () {

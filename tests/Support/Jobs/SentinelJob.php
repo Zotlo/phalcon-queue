@@ -12,14 +12,20 @@ use Phalcon\Queue\Jobs\Job;
 class SentinelJob extends Job
 {
     public string $path = '';
+    public int $sleepSeconds = 0;
 
-    public function __construct(string $path = '')
+    public function __construct(string $path = '', int $sleepSeconds = 0)
     {
-        $this->path = $path;
+        $this->path         = $path;
+        $this->sleepSeconds = $sleepSeconds;
     }
 
     public function handle(): void
     {
+        if ($this->sleepSeconds > 0) {
+            sleep($this->sleepSeconds);
+        }
+
         file_put_contents($this->path, 'done@' . time(), LOCK_EX);
     }
 }
