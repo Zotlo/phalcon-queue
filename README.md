@@ -1,117 +1,58 @@
-PQueue - Queue Worker for Phalcon
+Phalcon Queue
 ======================================
 
-PQueue provide a very simple way to run workers to consume queues (consumers) in PHP.
-The library have been developed to be easily extended to work with different queue servers and
-open to manage any kind of job.
+`zotlo/phalcon-queue` is a queue worker library for Phalcon 5. It lets you dispatch
+jobs (classes or plain closures) from your application and processes them in the
+background with a supervisor that automatically scales worker processes up and down.
 
-Current implementations:
+Supported storage backends:
 
-- **MySQL** queue adapter.
-- **Redis** queue adapter.
-- **SQLite** queue adapter.
+- **MySQL**
+- **Redis**
+- **SQLite**
 
-_and more adapter planning development_
+Requirements
+------------
 
-Worker
-------
-
-The lib has a worker class that run and infinite loop (can be stopped with some
-conditions) and manage all the stages to process jobs:
-
-- Get next job.
-- Execute job.
-- Job success then do.
-- Job failed then do.
-- Execution error then do.
-- No jobs then do.
-- Stop worker process pid.
-
-The loop can be **stopped** under control using the following methods:
-
-- **Stop Job**: The job handler allow to define a STOP job.
-- **Max Iterations**: It can be specified when the object is declared.
-
-Each worker has one queue source and manage one type of jobs. Many workers
-can be working concurrently using the same queue source.
-
-### Graceful Exit
-
-The worker is also capable for handling some posix signals, *viz.* `SIGINT` and `SIGTERM` so
-that it exits gracefully (waits for the current queue job to complete) when someone tries to
-manually stop it (usually with a `C-c` keystroke in a shell).
-
-Queue
------
-
-The lib provide an interface which allow to implement a queue connection for different queue
-servers. Currently the lib provide following implementations:
-
-- **MySQL** queue adapter.
-- **Redis** queue adapter.
-- **SQLite** queue adapter.
-
-The queue interface manage all related with the queue system and abstract the job about that.
-
-It require the queue system client:
-
-- MySQL : Phalcon\Db\Adapter\Pdo
-- Redis : Predis\Client
-- SQLite : ext-pdo
-
-And was well the source *queue name*. The consumer will need additional queues to manage the process:
-
-- **Processing Queue**: It will store the item popped from source queue while it is being processed.
-- **Failed Queue**: All Jobs that fail (according the Job definition) will be add in this queue.
-
-Jobs
-----
-
-The job interface is used to manage the job received in the queue. It must manage the domain
-business logic and **define the STOP job**.
-
-The job is abstracted form the queue system, so the same job definition is able to work with
-different queues interfaces. The job always receive the message body from the queue.
-
-If you have different job types ( send mail, crop images, etc. ) and you use one queue, you can define **isMyJob**.
-If job is not expected type, you can send back job to queue.
+- PHP 8.1+
+- Phalcon 5.x
+- PHP extensions: `pdo`, `redis`, `pcntl`, `sysvmsg`, `sockets`
+- POSIX operating system (Linux, macOS)
 
 Install
 -------
-
-Require the package in your composer json file:
 
 ```
 composer require zotlo/phalcon-queue
 ```
 
 Configure
------
+---------
 
-Register the ServiceProvider in cli.php file.
+Register the ServiceProvider in your CLI bootstrap (`cli.php`).
 
 ```php
 $di->register(new Phalcon\Queue\ServiceProvider());
 ```
 
-Define Supervisors in Phalcon config. It is possible to define more than one Queue.
+Define supervisors in your Phalcon config. It is possible to define more than one queue.
 
 ```php
 $di->setShared('config', function () {
     return new \Phalcon\Config\Config([
         'queues'   => [
-            'adapter'     => 'mysql',    # sqlite, redis, aws. very soon
-            'dbIndex'     => 1,          # Redis Database Index (only redis) 
+            'adapter'     => 'mysql',    # mysql, redis, sqlite
+            'dbIndex'     => 1,          # Redis database index (only redis)
             'supervisors' => [
                 [
                     'queue'           => 'default', # Queue Name
-                    'balance'         => 'auto',    # Balance Strategy
+                    'balance'         => 'auto',    # Balance Strategy (auto, simple)
                     'processes'       => 5,         # Maximum Process
-                    'tries'           => 0,         # Job Maximum Tries
-                    'timeout'         => 90,        # Job Timeout
-                    'balanceMaxShift' => 5,         # Execute or Destory Process Count
-                    'balanceCooldown' => 3,         # Check Process TTL (seconds)
-                    'debug'           => false      # Debugging Worker
+                    'tries'           => 0,         # Job Maximum Tries (0 = unlimited)
+                    'timeout'         => 90,        # Job Timeout (seconds)
+                    'balanceMaxShift' => 5,         # Max processes to start/stop per scaling cycle
+                    'balanceCooldown' => 3,         # Seconds between scaling checks
+                    'debug'           => false      # Worker debug logging
                 ],
                 [
                     'queue'           => 'another-queue',
@@ -129,7 +70,36 @@ $di->setShared('config', function () {
 });
 ```
 
-Set Supervisor Config
+Depending on the adapter, the matching service must also be registered in the DI:
+
+- `mysql` / `sqlite`: a `db` service returning a `Phalcon\Db\Adapter\Pdo` adapter
+- `redis`: a `redis` service returning a connected `\Redis` (phpredis) instance
+
+Running Workers
+---------------
+
+Each queue is driven by a master process that spawns and supervises its workers:
+
+```
+php cli.php Queue run default
+```
+
+The master scales the worker pool between 1 and `processes` according to the
+`balance` strategy:
+
+- **auto**: scales workers based on pending/processing job counts, moving at most
+  `balanceMaxShift` processes per `balanceCooldown` seconds.
+- **simple**: drains the queue as quickly as possible.
+
+### Graceful Exit
+
+The master handles `SIGINT`, `SIGTERM` and `SIGHUP` so that it exits gracefully:
+workers finish their current job before the process stops (e.g. a `C-c` keystroke
+in a shell, or a supervisord stop).
+
+### Supervisord
+
+In production, run one master per queue under supervisord:
 
 ```
 [program:phalcon-queue]
@@ -138,26 +108,22 @@ command = /usr/bin/php PHALCON_CLI_PATH/cli.php Queue run default
 autostart = true
 autorestart = true
 user = root
-numprocs = 1
 stopsignal = SIGTERM
 stopwaitsecs = 30
 startretries = 3
-```
 
-You must start each queue you define in supervisor.
-
-```
-[program:phalcon-queue]
+[program:phalcon-queue-another]
 process_name = another-queue
 command = /usr/bin/php PHALCON_CLI_PATH/cli.php Queue run another-queue
 autostart = true
 autorestart = true
 user = root
-numprocs = 1
 stopsignal = SIGTERM
 stopwaitsecs = 30
 startretries = 3
 ```
+
+You must start each queue you define in the config.
 
 Usage
 -----
@@ -171,45 +137,44 @@ namespace App\Jobs;
 
 use Phalcon\Queue\Jobs\Job;
 
-class MyJob implements Job {
-
-    public function handle(): void 
+class MyJob extends Job
+{
+    public function handle(): void
     {
         // your code
     }
-    
 }
 ```
 
 You can call the **dispatch** function anywhere you want.
 
 ```php
-dispatch(new MyJob())
+dispatch(new MyJob());
 ```
 
-You can set queue.
+You can set the queue.
+
+```php
+dispatch(new MyJob())
+    ->queue('default');
+```
+
+You can set a delay.
 
 ```php
 dispatch(new MyJob())
     ->queue('default')
+    ->delay(10); # Delay TTL (seconds)
 ```
 
-You can set delay.
-
-```php
-dispatch(new MyJob())
-    ->queue('default')
-    ->delay(10) # Delay TTL (seconds)
-```
-
-You can dispatch job batch.
+You can dispatch a job batch.
 
 ```php
 $jobArray = [
     new MyJob(),
     new MyJob(),
     ...
-]
+];
 
 dispatchBatch($jobArray);
 
@@ -218,49 +183,144 @@ dispatchBatch($jobArray)
     ->queue('default');
 ```
 
-## Async Job
+Async Jobs
+----------
 
 You can also define tasks that you want to run asynchronously without creating any classes.
 
 ```php
-async(function (){
+async(function () {
     ...
 });
 
-# You can 'use' statement.
+# You can use the 'use' statement.
 $uniqId = uniqid();
 
-async(function () use ($uniqId){
+async(function () use ($uniqId) {
     $taskId = $uniqId;
     ...
 });
 ```
 
-Also, You can get the status of any job you start at any time. Use await.
+Also, you can get the status of any job you start at any time. Use `await`, which
+returns a `Phalcon\Queue\Jobs\Status` enum.
 
 ```php
-$job = async(function (){
+$job = async(function () {
     ...
 });
 
 // Your app codes
 
 // Waits until the job succeeds or fails.
-$status = await($job); // return ['failed','completed']
+$status = await($job); // Status::COMPLETED or Status::FAILED
 
-// Waits until the job succeeds or fails. If you want to manage all processes, send the 'manageable' value as 'true'.
-$status = await($job, true); // return ['pending','processing','failed','completed']
+// If you want to manage all states yourself, pass 'manageable' as true;
+// pending/processing states are then returned immediately instead of blocking.
+$status = await($job, true); // Status::PENDING, PROCESSING, FAILED or COMPLETED
 ```
 
 ### IMPORTANT: You can't do that
 
+Closures run in a separate worker process, so captured references are not shared:
+
 ```php
-# You can 'use' statement.
 $variable = "initial";
 
-async(function () use (&$variable){
+async(function () use (&$variable) {
     $variable = "changed";
 });
 
-echo $variable; # print "initial"
+echo $variable; # prints "initial"
+```
+
+Channels
+--------
+
+`Phalcon\Queue\Channel` lets you pass messages between your application and async
+jobs (or between any processes). It is built on System V message queues
+(`ext-sysvmsg`), so a channel created in your app can be written to from a worker
+process running the job.
+
+Create a channel, share it with an async job via `use`, and read the result back:
+
+```php
+use Phalcon\Queue\Channel;
+
+$ch = Channel::make();
+
+$token = uniqid();
+
+async(function () use ($token, $ch) {
+    // heavy work...
+    sleep(rand(2, 10));
+
+    $ch->write(json_encode(['status' => true, 'msg' => 'message received!', 'id' => $token]));
+});
+
+// Blocks until a message arrives (or the timeout expires).
+$channelData = $ch->read();
+
+echo $channelData; # {"status":true,"msg":"message received!","id":"..."}
+```
+
+### API
+
+```php
+$ch = Channel::make();          # create a single channel
+$channels = Channel::makes(5);  # create multiple channels at once
+
+$ch->write(string $message): bool;          # write a message (max 128 KB)
+$ch->read(int $timeout = 15): ?string;      # read one message; null if none arrives within $timeout seconds
+$ch->readAll(int $timeout = 15): array;     # collect all messages arriving within $timeout seconds
+```
+
+`read()` returns as soon as a message is available. `readAll()` keeps collecting
+until the timeout expires, which is useful when multiple jobs report to the same
+channel:
+
+```php
+$ch = Channel::make();
+
+for ($i = 0; $i < 3; $i++) {
+    async(function () use ($ch, $i) {
+        $ch->write("job {$i} done");
+    });
+}
+
+$messages = $ch->readAll(30); # ["job 0 done", "job 1 done", "job 2 done"]
+```
+
+Failed Jobs
+-----------
+
+Jobs that exhaust their `tries` (or fail with an exception) are stored in the failed
+job storage (`jobs_failed` table for MySQL/SQLite, a prefixed key for Redis) together
+with the exception details.
+
+Management Commands
+-------------------
+
+The library ships Symfony Console commands for managing queues and failed jobs:
+
+| Command         | Description                       |
+|-----------------|-----------------------------------|
+| `queue:failed`  | List all of the failed queue jobs |
+| `queue:retry`   | Retry a failed queue job          |
+| `queue:restart` | Restart all workers               |
+| `queue:stop`    | Force stop all workers            |
+
+Register them in a console application (see `extra/cli.php` for a full example):
+
+```php
+$console = new Symfony\Component\Console\Application('Phalcon Queue Management', '1.0.0');
+
+$console->addCommands([
+    (new \Phalcon\Queue\Commands\ListFailedJobCommand())->setDi($di),
+    (new \Phalcon\Queue\Commands\RetryFailedJobCommand())->setDi($di),
+    (new \Phalcon\Queue\Commands\RestartQueueCommand())->setDi($di),
+    (new \Phalcon\Queue\Commands\ForceStopQueueCommand())->setDi($di),
+]);
+
+$console->run();
 ```
