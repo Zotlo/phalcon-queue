@@ -1,7 +1,10 @@
 .idea
 vendor
 composer.lock
-monitor.log
-cli.php
+# local development
+async.log
+db.sqlite
 insert.php
 config.php
+cli.php
+monitor.log
